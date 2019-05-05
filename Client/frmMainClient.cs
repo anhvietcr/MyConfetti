@@ -11,6 +11,8 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections;
+using Newtonsoft.Json.Linq;
 
 namespace Client
 {
@@ -18,10 +20,10 @@ namespace Client
     {
         #region GLOBAL
         static string answer = null;
+        static bool isPlay = false;
         static bool isAnswer = false;
         static bool isDisconnect = false;
         static int score = 0;
-        static string id = null;
 
         #endregion
 
@@ -61,23 +63,24 @@ namespace Client
         {
             Thread mainThread = new Thread(() =>
             {
+                string msg  = string.Empty;
+                string id   = null;
+
                 try
                 {
                     // connect
                     TcpClient client = new TcpClient();
                     IPAddress ipAddress = IPAddress.Parse(ip);
                     client.Connect(ipAddress, port);
+                    txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
                     Console.WriteLine("Connect to {0}:{1} successfully", ip, port);
 
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
                     StreamReader reader = new StreamReader(streamer);
                     StreamWriter writer = new StreamWriter(streamer);
-
-                    // auto flush buffer
                     writer.AutoFlush = true;
 
-                    string msg = "";
                     id = reader.ReadLine();
                     Console.WriteLine("My received id: {0}", id);
 
@@ -86,13 +89,36 @@ namespace Client
                         // check disConnect button was clicked
                         if (isDisconnect) break;
 
+                        // waiting for SERVER start game
+                        msg = reader.ReadLine();
+                        if (msg == "play")
+                        {
+                            isPlay = true;
+                        }
+                        if (!isPlay) continue;
+
+                        if (msg == "question")
+                        {
+                            string received = string.Empty;
+                            received = reader.ReadLine();
+                            Console.WriteLine(received);
+                            dynamic data = JObject.Parse(received);
+
+                            // update to GUI
+                            txt_question.Text = data.Question;
+                            answer_A.Text = data.A;
+                            answer_B.Text = data.B;
+                            answer_C.Text = data.C;
+                        }
+
+
                         // resume to user choose answer
                         if (!isAnswer) continue;
 
                         // wow !!!, okay
                         // send answer to server
-                        msg = id + "!" + answer;
-                        writer.WriteLine(msg);
+                        writer.WriteLine("answer");
+                        writer.WriteLine(id + "!" + answer);
 
                         // receive msg from server
                         msg = reader.ReadLine();
@@ -113,7 +139,6 @@ namespace Client
                             answer_A.Enabled = true;
                             answer_B.Enabled = true;
                             answer_C.Enabled = true;
-                            answer_D.Enabled = true;
                         }
                     }
                     streamer.Close();
@@ -130,8 +155,8 @@ namespace Client
 
         private void btn_answer_Clicked(object sender, EventArgs e)
         {
-            // get answer A, B, C, D from user
-            answer = (sender as Button).Text;
+            // get answer A, B, C from user
+            answer = (sender as Button).Tag.ToString();
             Console.WriteLine("clicked {0}", answer);
 
             isAnswer = true;
@@ -140,7 +165,6 @@ namespace Client
                 answer_A.Enabled = false;
                 answer_B.Enabled = false;
                 answer_C.Enabled = false;
-                answer_D.Enabled = false;
             }
         }
 
