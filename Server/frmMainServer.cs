@@ -14,7 +14,7 @@ using System.IO;
 using System.Timers;
 using System.Collections;
 using System.Runtime.Serialization.Formatters.Binary;
-
+using Question;
 namespace Server
 {
     public partial class frm_server : Form
@@ -286,6 +286,34 @@ namespace Server
                 jsonQuestion = getQuestion(numberQuestion);
                 sendQuestion(jsonQuestion);
             }
+        }
+
+        //THuộc tính lưu lại fileName
+        public string FileName
+        {
+            get; private set;
+
+        }
+        private void btnChoose_Click(object sender, EventArgs e)
+        {
+            if (openFileDialogQuestion.ShowDialog() == DialogResult.OK)
+            {
+                txtBoxFileName.Text = openFileDialogQuestion.FileName;
+            }
+        }
+       
+        private void btnNext_Click(object sender, EventArgs e)
+        {
+            if (!File.Exists(txtBoxFileName.Text))
+            {
+                MessageBox.Show("File không tồn tại, vui lòng thử lại!");
+                return;
+            }
+            FileName = txtBoxFileName.Text;
+            Data read = new Data();
+            string[] questions = read.readFile(FileName);
+            string s = questions[0];
+            MessageBox.Show(s);
         }
     }
 }

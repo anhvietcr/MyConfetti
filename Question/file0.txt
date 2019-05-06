@@ -1,0 +1,2 @@
+"{'Question':'Cau hoi ????','A':'Dap an A','B':'Dap an B','C':'Dap an C','answer':'A',}"
+"{'Question':'Cau hoi2 ????','A':'Dap an A','B':'Dap an B','C':'Dap an C','answer':'B',}"
