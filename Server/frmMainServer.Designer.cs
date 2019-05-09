@@ -48,16 +48,16 @@
             this.txt_ip.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txt_ip.Location = new System.Drawing.Point(12, 504);
             this.txt_ip.Name = "txt_ip";
-            this.txt_ip.Size = new System.Drawing.Size(72, 24);
+            this.txt_ip.Size = new System.Drawing.Size(107, 24);
             this.txt_ip.TabIndex = 0;
             this.txt_ip.Text = "127.0.0.1";
             // 
             // btn_open
             // 
             this.btn_open.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_open.Location = new System.Drawing.Point(138, 495);
+            this.btn_open.Location = new System.Drawing.Point(180, 502);
             this.btn_open.Name = "btn_open";
-            this.btn_open.Size = new System.Drawing.Size(75, 33);
+            this.btn_open.Size = new System.Drawing.Size(80, 28);
             this.btn_open.TabIndex = 1;
             this.btn_open.Text = "Open";
             this.btn_open.UseVisualStyleBackColor = true;
@@ -67,9 +67,9 @@
             // 
             this.btn_close.Enabled = false;
             this.btn_close.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_close.Location = new System.Drawing.Point(218, 495);
+            this.btn_close.Location = new System.Drawing.Point(268, 502);
             this.btn_close.Name = "btn_close";
-            this.btn_close.Size = new System.Drawing.Size(75, 33);
+            this.btn_close.Size = new System.Drawing.Size(80, 28);
             this.btn_close.TabIndex = 2;
             this.btn_close.Text = "Close";
             this.btn_close.UseVisualStyleBackColor = true;
@@ -78,9 +78,9 @@
             // txt_port
             // 
             this.txt_port.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_port.Location = new System.Drawing.Point(90, 504);
+            this.txt_port.Location = new System.Drawing.Point(125, 504);
             this.txt_port.Name = "txt_port";
-            this.txt_port.Size = new System.Drawing.Size(41, 24);
+            this.txt_port.Size = new System.Drawing.Size(49, 24);
             this.txt_port.TabIndex = 3;
             this.txt_port.Text = "6969";
             // 
@@ -96,10 +96,11 @@
             // 
             // btn_play
             // 
+            this.btn_play.Enabled = false;
             this.btn_play.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_play.Location = new System.Drawing.Point(618, 495);
+            this.btn_play.Location = new System.Drawing.Point(378, 504);
             this.btn_play.Name = "btn_play";
-            this.btn_play.Size = new System.Drawing.Size(94, 33);
+            this.btn_play.Size = new System.Drawing.Size(154, 63);
             this.btn_play.TabIndex = 1;
             this.btn_play.Text = "Play Game >>";
             this.btn_play.UseVisualStyleBackColor = true;
@@ -128,43 +129,44 @@
             // btnNext
             // 
             this.btnNext.DialogResult = System.Windows.Forms.DialogResult.OK;
+            this.btnNext.Enabled = false;
             this.btnNext.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnNext.Location = new System.Drawing.Point(621, 608);
+            this.btnNext.Location = new System.Drawing.Point(571, 504);
             this.btnNext.Name = "btnNext";
-            this.btnNext.Size = new System.Drawing.Size(94, 31);
+            this.btnNext.Size = new System.Drawing.Size(140, 63);
             this.btnNext.TabIndex = 10;
-            this.btnNext.Text = "Next";
+            this.btnNext.Text = "Câu hỏi mới";
             this.btnNext.UseVisualStyleBackColor = true;
             this.btnNext.Click += new System.EventHandler(this.btnNext_Click);
             // 
             // btnChoose
             // 
             this.btnChoose.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnChoose.Location = new System.Drawing.Point(617, 555);
+            this.btnChoose.Location = new System.Drawing.Point(317, 543);
             this.btnChoose.Name = "btnChoose";
-            this.btnChoose.Size = new System.Drawing.Size(94, 31);
+            this.btnChoose.Size = new System.Drawing.Size(31, 24);
             this.btnChoose.TabIndex = 9;
-            this.btnChoose.Text = "Chọn file...";
+            this.btnChoose.Text = "...";
             this.btnChoose.UseVisualStyleBackColor = true;
             this.btnChoose.Click += new System.EventHandler(this.btnChoose_Click);
             // 
             // txtBoxFileName
             // 
             this.txtBoxFileName.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtBoxFileName.Location = new System.Drawing.Point(138, 562);
+            this.txtBoxFileName.Location = new System.Drawing.Point(88, 543);
             this.txtBoxFileName.Name = "txtBoxFileName";
-            this.txtBoxFileName.Size = new System.Drawing.Size(440, 24);
+            this.txtBoxFileName.Size = new System.Drawing.Size(260, 24);
             this.txtBoxFileName.TabIndex = 8;
             // 
             // label2
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(13, 568);
+            this.label2.Location = new System.Drawing.Point(12, 546);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(70, 18);
+            this.label2.Size = new System.Drawing.Size(63, 18);
             this.label2.TabIndex = 7;
-            this.label2.Text = "Chọn  file";
+            this.label2.Text = "Câu hỏi:";
             // 
             // openFileDialogQuestion
             // 
@@ -174,7 +176,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(740, 661);
+            this.ClientSize = new System.Drawing.Size(721, 582);
             this.Controls.Add(this.btnNext);
             this.Controls.Add(this.btnChoose);
             this.Controls.Add(this.txtBoxFileName);

@@ -76,6 +76,7 @@
             // answer_A
             // 
             this.answer_A.AutoSize = true;
+            this.answer_A.Enabled = false;
             this.answer_A.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_A.Location = new System.Drawing.Point(194, 64);
             this.answer_A.MinimumSize = new System.Drawing.Size(150, 30);
@@ -105,6 +106,7 @@
             // answer_C
             // 
             this.answer_C.AutoSize = true;
+            this.answer_C.Enabled = false;
             this.answer_C.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_C.Location = new System.Drawing.Point(194, 136);
             this.answer_C.MinimumSize = new System.Drawing.Size(150, 30);
@@ -119,6 +121,7 @@
             // answer_B
             // 
             this.answer_B.AutoSize = true;
+            this.answer_B.Enabled = false;
             this.answer_B.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_B.Location = new System.Drawing.Point(194, 100);
             this.answer_B.MinimumSize = new System.Drawing.Size(150, 30);
@@ -141,7 +144,7 @@
             // txt_question
             // 
             this.txt_question.AutoSize = true;
-            this.txt_question.Location = new System.Drawing.Point(16, 22);
+            this.txt_question.Location = new System.Drawing.Point(6, 22);
             this.txt_question.Name = "txt_question";
             this.txt_question.Size = new System.Drawing.Size(168, 18);
             this.txt_question.TabIndex = 9;

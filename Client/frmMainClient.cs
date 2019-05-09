@@ -18,12 +18,17 @@ namespace Client
 {
     public partial class frmMainClient : Form
     {
+        //private readonly SynchronizationContext uiContext;
+        private TcpClient client = null;
+        private Stream streamer = null;
+        private StreamWriter writer = null;
+
         #region GLOBAL
         static string answer = null;
         static bool isPlay = false;
-        static bool isAnswer = false;
         static bool isDisconnect = false;
         static int score = 0;
+        string id = string.Empty;
 
         #endregion
 
@@ -31,8 +36,14 @@ namespace Client
         public frmMainClient()
         {
             InitializeComponent();
+            //uiContext = SynchronizationContext.Current;
         }
 
+        /**
+         * 
+         * Buttons Event
+         * 
+         * */
         private void btn_connect_Click(object sender, EventArgs e)
         {
             string ip = null;
@@ -59,90 +70,135 @@ namespace Client
             ConnectServer(ip, port);
         }
 
+        private void btn_answer_Clicked(object sender, EventArgs e)
+        {
+            if (client == null) return;
+
+            // get answer A, B, C from user
+            answer = (sender as Button).Tag.ToString();
+            Console.WriteLine("clicked {0}", answer);
+
+            answer_A.Enabled = false;
+            answer_B.Enabled = false;
+            answer_C.Enabled = false;
+
+            writer.WriteLine("answer");
+            writer.WriteLine(id);
+            writer.WriteLine(answer);
+        }
+
+        private void btn_close_Click(object sender, EventArgs e)
+        {
+            // toggle button
+            btn_connect.Enabled = true;
+            btn_close.Enabled = false;
+
+            isDisconnect = true;
+        }
+
+
+        /**
+         * 
+         * Client's
+         * 
+         **/
         public void ConnectServer(string ip, int port)
         {
             Thread mainThread = new Thread(() =>
             {
-                string msg  = string.Empty;
-                string id   = null;
+                string msg = string.Empty;
+                string state = string.Empty;
+                string received = string.Empty;
 
                 try
                 {
                     // connect
-                    TcpClient client = new TcpClient();
-                    IPAddress ipAddress = IPAddress.Parse(ip);
-                    client.Connect(ipAddress, port);
+                    client = new TcpClient();
+                    client.Connect(IPAddress.Parse(ip), port);
                     txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
-                    Console.WriteLine("Connect to {0}:{1} successfully", ip, port);
 
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
                     StreamReader reader = new StreamReader(streamer);
-                    StreamWriter writer = new StreamWriter(streamer);
+                    writer = new StreamWriter(streamer);
                     writer.AutoFlush = true;
 
+                    Console.WriteLine(streamer);
+
+                    // get user ID, state game
+                    writer.WriteLine("init");
                     id = reader.ReadLine();
-                    Console.WriteLine("My received id: {0}", id);
+                    state = reader.ReadLine();
+                    Console.WriteLine("My received id: {0}, game play? {1}", id, state);
+
+                    // get current question 
+                    if (state.Contains("True"))
+                    {
+                        Console.WriteLine("Join. Game was play");
+
+                        writer.WriteLine("question");
+                        string numberQuestion = reader.ReadLine();
+                        groupBox_question.Text = string.Format("Câu hỏi: số {0}", Convert.ToInt32(numberQuestion));
+
+                        received = reader.ReadLine();
+                        parseQuestion(received);
+
+                        answer_A.Enabled = true;
+                        answer_B.Enabled = true;
+                        answer_C.Enabled = true;
+                    }
 
                     while (true)
                     {
                         // check disConnect button was clicked
                         if (isDisconnect) break;
 
-                        // waiting for SERVER start game
+                        // listening msg from Server
                         msg = reader.ReadLine();
-                        if (msg == "play")
+
+                        switch (msg)
                         {
-                            isPlay = true;
-                        }
-                        if (!isPlay) continue;
+                            case "play":
+                                MessageBox.Show("Game play . . .");
+                                break;
 
-                        if (msg == "question")
-                        {
-                            string received = string.Empty;
-                            received = reader.ReadLine();
-                            Console.WriteLine(received);
-                            dynamic data = JObject.Parse(received);
+                            case "new question":
+                                // id
+                                string numberQuestion = reader.ReadLine();
+                                groupBox_question.Text = string.Format("Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
 
-                            // update to GUI
-                            txt_question.Text = data.Question;
-                            answer_A.Text = data.A;
-                            answer_B.Text = data.B;
-                            answer_C.Text = data.C;
-                        }
+                                //question 
+                                received = reader.ReadLine();
+                                parseQuestion(received);
 
+                                answer_A.Enabled = true;
+                                answer_B.Enabled = true;
+                                answer_C.Enabled = true;
+                                break;
 
-                        // resume to user choose answer
-                        if (!isAnswer) continue;
+                            case "correct":
+                                received = reader.ReadLine();
+                                txt_noti.Text = "Kết quả: " + received;
+                                score++;
+                                txt_score.Text = score.ToString();
+                                break;
 
-                        // wow !!!, okay
-                        // send answer to server
-                        writer.WriteLine("answer");
-                        writer.WriteLine(id + "!" + answer);
+                            case "incorrect":
+                                received = reader.ReadLine();
+                                txt_noti.Text = "Kết quả: " + received;
+                                txt_score.Text = score.ToString();
+                                break;
 
-                        // receive msg from server
-                        msg = reader.ReadLine();
-                        string[] info = msg.Split('!');
-
-                        if (info.Length <= 1) continue;
-                        if (info[0].Equals("1"))
-                        {
-                            score++;
-                        }
-                        txt_noti.Text = "Kết quả: " + info[1];
-                        txt_score.Text = score.ToString();
-
-                        // reset answer
-                        isAnswer = false;
-                        if (!isAnswer)
-                        {
-                            answer_A.Enabled = true;
-                            answer_B.Enabled = true;
-                            answer_C.Enabled = true;
+                            default: break;
                         }
                     }
                     streamer.Close();
                     client.Close();
+                }
+                catch (IOException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -153,28 +209,24 @@ namespace Client
             mainThread.Start();
         }
 
-        private void btn_answer_Clicked(object sender, EventArgs e)
+        private void parseQuestion(string jsonQuestion)
         {
-            // get answer A, B, C from user
-            answer = (sender as Button).Tag.ToString();
-            Console.WriteLine("clicked {0}", answer);
-
-            isAnswer = true;
-            if (isAnswer)
+            try
             {
-                answer_A.Enabled = false;
-                answer_B.Enabled = false;
-                answer_C.Enabled = false;
+                Console.WriteLine(jsonQuestion);
+                dynamic data = JObject.Parse(jsonQuestion);
+
+                // update to GUI
+                txt_question.Text = data.Question;
+                answer_A.Text = data.A;
+                answer_B.Text = data.B;
+                answer_C.Text = data.C;
             }
-        }
-
-        private void btn_close_Click(object sender, EventArgs e)
-        {
-            // toggle button
-            btn_connect.Enabled = true;
-            btn_close.Enabled = false;
-
-            isDisconnect = true;
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                throw;
+            }
         }
     }
 }
