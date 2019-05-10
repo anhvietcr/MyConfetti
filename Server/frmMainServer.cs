@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Composition;
 using System.Data;
 using System.Drawing;
 using System.Linq;
@@ -15,7 +16,22 @@ using System.Timers;
 using System.Collections;
 using System.Runtime.Serialization.Formatters.Binary;
 using Question;
+using NAudio.Wave;
+using NAudio.Wave.Compression;
+using Codecs;
+using Codecs.Codecs;
 
+
+/*
+ * 
+    How to send / receive livestream webcam from server to clients ? 
+    1) Capturing raw video from camera and audio from microphone.
+    2) Compressing the video and audio.
+    3) Transmitting and receiving video and audio.
+    4) Decompressing the video and audio.
+    5) Displaying the video and playing the audio.
+*
+*/
 
 
 namespace Server
@@ -28,67 +44,112 @@ namespace Server
         static int numberConnecting = 0;
         static TcpListener server   = null;
         Thread mainThread           = null;
-        static bool isDisconnect    = false;
-        static List<Socket> listSocket = new List<Socket>();
-        static bool isPlay { get; set; }
-        static bool isExit { get; set; } = false;
+        private volatile bool isDisconnect    = false;
+        private volatile List<Socket> listSocket = new List<Socket>();
+        private bool isPlay { get; set; }
+        private bool isExit { get; set; } = false;
         static bool isNewQuestion { get; set; } = false;
         static int tick = 0;
-        static int numberQuestion = 0;
+        private volatile int numberQuestion = 0;
         string[] questions = null;
         string jsonQuestion { get; set; } = string.Empty;
+        private System.Windows.Forms.Timer tmr;
 
+
+        // Audio record Properties
+        //public IEnumerable<INetworkChatCodec> Codecs { get; set; }
+        [ImportMany(typeof(INetworkChatCodec))]
+        private List<INetworkChatCodec> Codecs;
+        private WaveIn waveIn;
+        private UdpClient udpSender;
+        private INetworkChatCodec codec;
+        private volatile bool connected;
 
         #endregion
 
 
-        private System.Windows.Forms.Timer tmr;
-
         public frm_server()
         {
             InitializeComponent();
+            GetAudioInputDevicesCombo();
+
+            Codecs = new List<INetworkChatCodec>();
+            Codecs.Add(new AcmMuLawChatCodec());
+            Codecs.Add(new G722ChatCodec());
+            Codecs.Add(new Gsm610ChatCodec());
+            Codecs.Add(new MicrosoftAdpcmChatCodec());
+            Codecs.Add(new MuLawChatCodec());
+            Codecs.Add(new TrueSpeechChatCodec());
+            Codecs.Add(new UncompressedPcmChatCodec());
+
+            //codec = new Codecs.Gsm610ChatCodec();
+            GetAudioCodecsCombo(Codecs);
         }
- 
+
 
         /**
          * 
          * Buttons Event
          * 
          **/
+        #region Buttons event
         private void btn_open_Click(object sender, EventArgs e)
         {
-            string ip = null;
-            int port = 0;
+            if (!connected)
+            {
+                string ip = null;
+                int port = 0;
 
-            // valid IP address and PORT
-            if (string.IsNullOrEmpty(txt_ip.Text)) return;
-            if (string.IsNullOrEmpty(txt_port.Text)) return;
+                // valid IP address and PORT
+                if (string.IsNullOrEmpty(txt_ip.Text)) return;
+                if (string.IsNullOrEmpty(txt_port.Text)) return;
 
-            // valid IP format
-            ip = txt_ip.Text;
+                // valid IP format
+                ip = txt_ip.Text;
 
-            // valid type of PORT
-            if (int.TryParse(txt_port.Text, out int _port))
-                port = _port;
-            else
-                return;
+                // valid type of PORT
+                if (int.TryParse(txt_port.Text, out int _port))
+                    port = _port;
+                else
+                    return;
 
-            // toggle button 
-            btn_open.Enabled = false;
-            btn_close.Enabled = true;
-            btn_play.Enabled = true;
+                // toggle button 
+                comboBoxCodecs.Enabled = false;
+                comboBoxInputDevices.Enabled = false;
+                btn_play.Enabled = true;
+                btn_open.Text = "Close";
 
-            // Let's go
-            StartServer(ip, port);
+                // Let's go
+                StartServer(ip, port);
+            } else
+            {
+                comboBoxCodecs.Enabled = true;
+                comboBoxInputDevices.Enabled = true;
+                btn_play.Enabled = false;
+                btn_open.Text = "Open";
+                CloseListener();
+            }
         }
 
-        private void btn_close_Click(object sender, EventArgs e)
+        private void CloseListener()
         {
-            // toggle button 
-            btn_open.Enabled = true;
-            btn_close.Enabled = false;
+            if (connected)
+            {
+                connected = false;
+                isDisconnect = true;
 
-            isDisconnect = true;
+                waveIn.DataAvailable -= waveIn_DataAvailable;
+                waveIn.StopRecording();
+                server.Stop();
+                waveIn.Dispose();
+
+                //waveOut.Stop();
+                //udpSender.Close();
+                //udpListener.Close();
+                //waveOut.Dispose();
+
+                this.codec.Dispose(); // a bit naughty but we have designed the codecs to support multiple calls to Dispose, recreating their resources if Encode/Decode called again
+            }
         }
 
         private void btn_play_Click(object sender, EventArgs e)
@@ -117,6 +178,7 @@ namespace Server
                     writer.WriteLine("play");
                 }
             }
+
         }
 
         private void btnNext_Click(object sender, EventArgs e)
@@ -160,6 +222,79 @@ namespace Server
                 questions = read.readFile(txtBoxFileName.Text);
             }
         }
+        #endregion
+
+
+        #region Audio
+        class CodecComboItem
+        {
+            public string Text { get; set; }
+            public INetworkChatCodec Codec { get; set; }
+            public override string ToString()
+            {
+                return Text;
+            }
+        }
+        class ListenerThreadState
+        {
+            public IPEndPoint EndPoint { get; set; }
+            public INetworkChatCodec Codec { get; set; }
+        }
+
+        // List all codecs was prepare
+        private void GetAudioCodecsCombo(List<INetworkChatCodec> codecs)
+        {
+            var sorted = from codec in codecs
+                         where codec.IsAvailable
+                         orderby codec.BitsPerSecond ascending
+                         select codec;
+
+            foreach (var codec in sorted)
+            {
+                string bitRate = codec.BitsPerSecond == -1 ? "VBR" : String.Format("{0:0.#}kbps", codec.BitsPerSecond / 1000.0);
+                string text = String.Format("{0} ({1})", codec.Name, bitRate);
+                this.comboBoxCodecs.Items.Add(new CodecComboItem() { Text = text, Codec = codec });
+            }
+            this.comboBoxCodecs.SelectedIndex = 0;
+        }
+
+        // List all microphone devices
+        private void GetAudioInputDevicesCombo()
+        {
+            for (int n = 0; n < WaveIn.DeviceCount; n++)
+            {
+                var capabilities = WaveIn.GetCapabilities(n);
+                this.comboBoxInputDevices.Items.Add(capabilities.ProductName);
+            }
+            if (comboBoxInputDevices.Items.Count > 0)
+            {
+                comboBoxInputDevices.SelectedIndex = 0;
+            }
+        }
+
+        int i = 0;
+        void waveIn_DataAvailable(object sender, WaveInEventArgs e)
+        {
+            byte[] encoded = codec.Encode(e.Buffer, 0, e.BytesRecorded);
+            udpSender.Send(encoded, encoded.Length);
+            Console.WriteLine("{1} send audio size {0}", encoded.Length, i++);
+
+            //foreach (Socket client in listSocket)
+            //{
+            //    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+            //    {
+            //        client.Send(encoded, encoded.Length, SocketFlags.None);
+            //        //writer.WriteLine(encoded);
+            //        //writer.Flush();
+            //    }
+            //}
+
+            //foreach (Socket client in listSocket)
+            //{
+            //    client.Send(encoded, encoded.Length, SocketFlags.None);
+            //}
+        }
+        #endregion
 
 
         /**
@@ -173,10 +308,27 @@ namespace Server
             Console.WriteLine("Open server at {0}:{1} . . .", ip, port);
             IPAddress ipAddress = IPAddress.Parse(ip);
 
+            // Recoding Audio
+            waveIn = new WaveIn();
+            int inputDeviceNumber = comboBoxInputDevices.SelectedIndex;
+            this.codec = ((CodecComboItem)comboBoxCodecs.SelectedItem).Codec;
+            waveIn.BufferMilliseconds = 50;
+            waveIn.DeviceNumber = inputDeviceNumber;
+            waveIn.WaveFormat = codec.RecordFormat;
+            waveIn.DataAvailable += waveIn_DataAvailable;
+            waveIn.StartRecording();
+
+
+            udpSender = new UdpClient();
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(txt_ip.Text), int.Parse(txt_port.Text));
+            udpSender.Connect(endPoint);
+
+
             Thread mainThread = new Thread(() =>
             {
                 server = new TcpListener(ipAddress, port);
                 server.Start();
+                connected = true;
 
                 // listen from client
                 // open a new Thread if a Client connecting
@@ -216,10 +368,10 @@ namespace Server
             // okay, a client was connect
             // receive data from client for valid
 
-            int questionID  = 1;
-            string answer   = string.Empty;
-            string msg      = string.Empty;
-            string idUser   = string.Empty;
+            int questionID = 1;
+            string answer = string.Empty;
+            string msg = string.Empty;
+            string idUser = string.Empty;
 
             try
             {
@@ -234,10 +386,10 @@ namespace Server
                 Console.WriteLine("<<ID: {0}>> New connect from {1}", numberConnecting, client.RemoteEndPoint);
 
 
+
                 //var timer = new System.Timers.Timer(1000);
                 //timer.Elapsed += timer_Elapsed;
                 //timer.Start();
-
 
                 while (true)
                 {
@@ -292,6 +444,7 @@ namespace Server
                     // client send exit status
                     if (isExit) break;
                 }
+
                 streamer.Close();
             }
             catch (NullReferenceException ex)
@@ -303,7 +456,6 @@ namespace Server
                 Console.WriteLine(ex.Message);
                 throw;
             }
-
             // Client was disconnect, should close.
             Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
             client.Close();
@@ -316,7 +468,7 @@ namespace Server
             return false;
         }
 
-        static void sendQuestion(string jsonQuestion, int numberQuestion)
+        private void sendQuestion(string jsonQuestion, int numberQuestion)
         {
             // valid running in game loop
             if (!isPlay) return;
@@ -340,7 +492,7 @@ namespace Server
         }
 
         // every 1 second timer tick
-        static void timer_Elapsed(object sender, ElapsedEventArgs e)
+        private void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (!isPlay) return;
 

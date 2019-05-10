@@ -13,6 +13,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Collections;
 using Newtonsoft.Json.Linq;
+using NAudio.Wave;
+using NAudio.Wave.Compression;
+using Codecs.Codecs;
+using Codecs;
+
 
 namespace Client
 {
@@ -22,6 +27,7 @@ namespace Client
         private TcpClient client = null;
         private Stream streamer = null;
         private StreamWriter writer = null;
+        private StreamReader reader = null;
 
         #region GLOBAL
         static string answer = null;
@@ -31,6 +37,13 @@ namespace Client
         string id = string.Empty;
 
         #endregion
+
+        // Audio record Properties
+        private UdpClient udpListener;
+        private IWavePlayer waveOut;
+        private BufferedWaveProvider waveProvider;
+        private INetworkChatCodec codec;
+        private volatile bool connected;
 
 
         public frmMainClient()
@@ -96,6 +109,37 @@ namespace Client
             isDisconnect = true;
         }
 
+        class ListenerThreadState
+        {
+            public IPEndPoint EndPoint { get; set; }
+            public INetworkChatCodec Codec { get; set; }
+        }
+
+        int i = 0;
+        byte[] buffer = null;
+        byte[] decoded = null;
+        private void ListenerThread(object state)
+        {
+            ListenerThreadState listenerThreadState = (ListenerThreadState)state;
+            IPEndPoint endPoint = listenerThreadState.EndPoint;
+            try
+            {
+                while (connected)
+                {
+                    buffer = udpListener.Receive(ref endPoint);
+                    decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
+                    waveProvider.AddSamples(decoded, 0, decoded.Length);
+                    Console.WriteLine("{1} audio receive size {0}", decoded.Length, i++);
+
+                }
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+        }
+
 
         /**
          * 
@@ -104,6 +148,48 @@ namespace Client
          **/
         public void ConnectServer(string ip, int port)
         {
+            //codec = new Gsm610ChatCodec(); // echo
+            codec = new G722ChatCodec(); // echo 
+            //codec = new AcmALawChatCodec(); // bad
+            //codec = new ALawChatCodec(); // bad - G711
+            //codec = new AcmMuLawChatCodec(); // bad
+            //codec = new MicrosoftAdpcmChatCodec(); // mute
+            //codec = new MuLawChatCodec(); // bad
+            //codec = new TrueSpeechChatCodec(); // error
+            //codec = new UncompressedPcmChatCodec(); // echo                                        
+
+
+            //udpListener = new UdpClient();
+            //udpListener.ExclusiveAddressUse = false;
+            //IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 9999);
+
+            //udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            //udpListener.ExclusiveAddressUse = false; // multi listening one 1 computer
+            //udpListener.Client.Bind(endPoint);
+
+            //IPAddress multicastaddress = IPAddress.Parse("230.0.0.1");
+            //udpListener.JoinMulticastGroup(multicastaddress);
+
+
+            // Audio Record
+            // connect via UDP
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+            udpListener = new UdpClient();
+            udpListener.ExclusiveAddressUse = false;
+            udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udpListener.Client.Bind(endPoint);
+
+            // play audio
+            waveOut = new WaveOut();
+            waveProvider = new BufferedWaveProvider(codec.RecordFormat);
+            waveOut.Init(waveProvider);
+            waveOut.Play();
+
+            connected = true;
+            ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
+            ThreadPool.QueueUserWorkItem(this.ListenerThread, threadState);
+
+
             Thread mainThread = new Thread(() =>
             {
                 string msg = string.Empty;
@@ -119,17 +205,17 @@ namespace Client
 
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
-                    StreamReader reader = new StreamReader(streamer);
+                    reader = new StreamReader(streamer);
                     writer = new StreamWriter(streamer);
                     writer.AutoFlush = true;
 
-                    Console.WriteLine(streamer);
 
                     // get user ID, state game
                     writer.WriteLine("init");
                     id = reader.ReadLine();
                     state = reader.ReadLine();
                     Console.WriteLine("My received id: {0}, game play? {1}", id, state);
+
 
                     // get current question 
                     if (state.Contains("True"))
@@ -138,7 +224,7 @@ namespace Client
 
                         writer.WriteLine("question");
                         string numberQuestion = reader.ReadLine();
-                        groupBox_question.Text = string.Format("Câu hỏi: số {0}", Convert.ToInt32(numberQuestion));
+                        groupBox_question.Text = string.Format("Câu hỏi: số {0}", int.Parse(numberQuestion));
 
                         received = reader.ReadLine();
                         parseQuestion(received);
@@ -148,8 +234,8 @@ namespace Client
                         answer_C.Enabled = true;
                     }
 
-                    while (true)
-                    {
+                   while (true)
+                   {
                         // check disConnect button was clicked
                         if (isDisconnect) break;
 
