@@ -23,20 +23,15 @@ namespace Client
 {
     public partial class frmMainClient : Form
     {
-        //private readonly SynchronizationContext uiContext;
-        private TcpClient client = null;
-        private Stream streamer = null;
-        private StreamWriter writer = null;
-        private StreamReader reader = null;
-
         #region GLOBAL
-        static string answer = null;
-        static bool isPlay = false;
-        static bool isDisconnect = false;
-        static int score = 0;
-        string id = string.Empty;
 
-        #endregion
+        private TcpClient client                        = null;
+        private StreamWriter writer                     = null;
+        private StreamReader reader                     = null;
+        private string id                               = string.Empty;
+        private static int score                        = 0;
+        private static string answer                    = null;
+        private static bool isDisconnect                = false;
 
         // Audio record Properties
         private UdpClient udpListener;
@@ -44,12 +39,11 @@ namespace Client
         private BufferedWaveProvider waveProvider;
         private INetworkChatCodec codec;
         private volatile bool connected;
-
+        #endregion
 
         public frmMainClient()
         {
             InitializeComponent();
-            //uiContext = SynchronizationContext.Current;
         }
 
         /**
@@ -89,7 +83,6 @@ namespace Client
 
             // get answer A, B, C from user
             answer = (sender as Button).Tag.ToString();
-            Console.WriteLine("clicked {0}", answer);
 
             answer_A.Enabled = false;
             answer_B.Enabled = false;
@@ -177,7 +170,6 @@ namespace Client
                 waveOut.Play();
 
                 connected = true;
-
                 ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
                 ThreadPool.QueueUserWorkItem(this.ListenerThread, threadState);
 

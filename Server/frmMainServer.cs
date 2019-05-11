@@ -20,6 +20,8 @@ using NAudio.Wave;
 using NAudio.Wave.Compression;
 using Codecs;
 using Codecs.Codecs;
+using Newtonsoft.Json.Linq;
+
 
 
 /*
@@ -42,30 +44,27 @@ namespace Server
     public partial class frm_server : Form
     {
         #region GLOBAL
-
-        const int MAX_CONNECT       = 100;
-        static int numberConnecting = 0;
-        static TcpListener server   = null;
-        Thread mainThread           = null;
-        private volatile bool isDisconnect    = false;
-        private volatile List<Socket> listSocket = new List<Socket>();
-        private bool isPlay { get; set; }
-        private bool isExit { get; set; } = false;
-        static bool isNewQuestion { get; set; } = false;
-        static int tick = 0;
-        private volatile int numberQuestion = 0;
-        string[] questions = null;
-        string jsonQuestion { get; set; } = string.Empty;
-        private System.Windows.Forms.Timer tmr;
-
+        private static int tick                             = 0;
+        private Thread mainThread                           = null;
+        private string[] _questions                         = null;
+        private const int MAX_CONNECT                       = 100;
+        private static TcpListener server                   = null;
+        private bool _isPlay { get; set; }                  = false;
+        private bool _isExit { get; set; }                  = false;
+        private volatile bool _isDisconnect                 = false;
+        private volatile int _numberQuestion                = 0;
+        private static int _numberConnecting                = 0;
+        private volatile List<Socket> _listSocket           = new List<Socket>();
+        private string _jsonQuestion { get; set; }          = string.Empty;
+        private string _correctAnswer { get; set; }         = string.Empty;
+        private static bool _isNewQuestion { get; set; }    = false;
 
         // Audio record Properties
-        private List<INetworkChatCodec> Codecs;
         private WaveIn waveIn;
         private UdpClient udpSender;
         private INetworkChatCodec codec;
         private volatile bool connected;
-
+        private List<INetworkChatCodec> Codecs;
         #endregion
 
 
@@ -137,7 +136,7 @@ namespace Server
             if (connected)
             {
                 connected = false;
-                isDisconnect = true;
+                _isDisconnect = true;
 
                 waveIn.DataAvailable -= waveIn_DataAvailable;
                 waveIn.StopRecording();
@@ -155,24 +154,24 @@ namespace Server
 
         private void btn_play_Click(object sender, EventArgs e)
         {
-            if (numberConnecting < 1)
+            if (_numberConnecting < 1)
             {
                 MessageBox.Show("Chưa có người tham gia !");
                 return;
             }
 
-            if (string.IsNullOrEmpty(txtBoxFileName.Text) || questions == null)
+            if (string.IsNullOrEmpty(txtBoxFileName.Text) || _questions == null)
             {
                 MessageBox.Show("Chưa chọn file chứa câu hỏi !");
                 return;
             }
 
-            isPlay = true;
+            _isPlay = true;
             btn_play.Enabled = false;
             btnNext.Enabled = true;
 
             // message to all client for start game
-            foreach (Socket client in listSocket)
+            foreach (Socket client in _listSocket)
             {
                 using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
                 {
@@ -190,26 +189,32 @@ namespace Server
                 return;
             }
 
-            if (questions.Length <= 0)
+            if (_questions.Length <= 0)
             {
                 MessageBox.Show("Chưa chọn file chứa câu hỏi !");
                 return;
             }
 
-            if (numberQuestion >= questions.Length)
+            if (_numberQuestion >= _questions.Length)
             {
                 MessageBox.Show("Hết câu hỏi !");
-                numberQuestion = 0;
+                _numberQuestion = 0;
                 btn_play.Enabled = true;
                 btnNext.Enabled = false;
-                txtBoxFileName.Text = "";
+                txtBoxFileName.Text = string.Empty;
                 return;
             }
 
-            jsonQuestion = questions[numberQuestion];
-            sendQuestion(jsonQuestion, numberQuestion);
+            // Get question
+            _jsonQuestion = _questions[_numberQuestion];
 
-            numberQuestion++;
+            // Set correct answer
+            dynamic data = JObject.Parse(@_jsonQuestion);
+            _correctAnswer = data.answer;
+            
+            // Send to Clients
+            sendQuestion(_jsonQuestion, _numberQuestion);
+            _numberQuestion++;
         }
 
         private void btnChoose_Click(object sender, EventArgs e)
@@ -220,7 +225,7 @@ namespace Server
 
                 // Get datas question[]
                 Data read = new Data();
-                questions = read.readFile(txtBoxFileName.Text);
+                _questions = read.readFile(txtBoxFileName.Text);
             }
         }
         #endregion
@@ -317,14 +322,14 @@ namespace Server
 
                 // Listen from client
                 // open a new Thread if a Client connect
-                while (numberConnecting < MAX_CONNECT)
+                while (_numberConnecting < MAX_CONNECT)
                 {
                     Socket acceptSocket = server.AcceptSocket();
-                    listSocket.Add(acceptSocket);
-                    numberConnecting++;
-                    txt_numberConnect.Text = numberConnecting.ToString(); // update UI
+                    _listSocket.Add(acceptSocket);
+                    _numberConnecting++;
+                    txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
 
-                    if (isDisconnect)
+                    if (_isDisconnect)
                     {
                         break;
                     }
@@ -339,7 +344,7 @@ namespace Server
                     }
                 }
                 server.Server.Close();
-                isDisconnect = false;
+                _isDisconnect = false;
                 Console.WriteLine("Server was closed from main");
 
             });
@@ -365,8 +370,7 @@ namespace Server
 
                 // should flush buffer stream auto 
                 writer.AutoFlush = true;
-                Console.WriteLine("<<ID: {0}>> New connect from {1}", numberConnecting, client.RemoteEndPoint);
-
+                Console.WriteLine("<<ID: {0}>> New connect from {1}", _numberConnecting, client.RemoteEndPoint);
 
 
                 //var timer = new System.Timers.Timer(1000);
@@ -382,13 +386,13 @@ namespace Server
                     {
                         case "init":
                             // send to client's ID, state game
-                            writer.WriteLine(numberConnecting);
-                            writer.WriteLine(isPlay);
+                            writer.WriteLine(_numberConnecting);
+                            writer.WriteLine(_isPlay);
                             break;
 
                         case "question":
-                            writer.WriteLine(numberQuestion);
-                            writer.WriteLine(@jsonQuestion);
+                            writer.WriteLine(_numberQuestion);
+                            writer.WriteLine(_jsonQuestion);
                             break;
 
                         case "answer":
@@ -414,17 +418,17 @@ namespace Server
                             continue;
                     }
 
-                    if (isDisconnect)
+                    if (_isDisconnect)
                     {
                         mainThread.Abort();
                         server.Server.Close();
                         Console.WriteLine("Server was closed from client send");
-                        isDisconnect = false;
+                        _isDisconnect = false;
                         break;
                     }
 
                     // client send exit status
-                    if (isExit) break;
+                    if (_isExit) break;
                 }
 
                 streamer.Close();
@@ -445,18 +449,18 @@ namespace Server
 
         private bool CheckAwnserForQuestion(string answer, int questionID)
         {
-            if (answer == "A") return true;
-
+            if (answer == this._correctAnswer)
+                return true;
             return false;
         }
 
         private void sendQuestion(string jsonQuestion, int numberQuestion)
         {
             // valid running in game loop
-            if (!isPlay) return;
+            if (!_isPlay) return;
 
             // message to all client for start game
-            foreach (Socket client in listSocket)
+            foreach (Socket client in _listSocket)
             {
                 using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
                 {
@@ -476,9 +480,9 @@ namespace Server
         // every 1 second timer tick
         private void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (!isPlay) return;
+            if (!_isPlay) return;
 
-            if (numberQuestion >= 10)
+            if (_numberQuestion >= 10)
             {
                 return;
                 // done a collect include 10 question
@@ -492,12 +496,12 @@ namespace Server
             //if (tick == 10)
             //{
             //    Console.WriteLine("New question avaliable");
-            //    isNewQuestion = true;
+            //    _isNewQuestion = true;
             //    tick = 0;
-            //    ++numberQuestion;
+            //    ++_numberQuestion;
 
-            //    jsonQuestion = getQuestion(numberQuestion);
-            //    sendQuestion(jsonQuestion);
+            //    _jsonQuestion = getQuestion(_numberQuestion);
+            //    sendQuestion(_jsonQuestion);
             //}
         }
     }
