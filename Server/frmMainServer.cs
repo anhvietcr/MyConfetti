@@ -31,6 +31,9 @@ using Codecs.Codecs;
     4) Decompressing the video and audio.
     5) Displaying the video and playing the audio.
 *
+* *
+* For TCP: Connect (one-one)
+* For UDP: Broadcast (one-many) & Non-Broadcast (one-one)
 */
 
 
@@ -57,8 +60,6 @@ namespace Server
 
 
         // Audio record Properties
-        //public IEnumerable<INetworkChatCodec> Codecs { get; set; }
-        [ImportMany(typeof(INetworkChatCodec))]
         private List<INetworkChatCodec> Codecs;
         private WaveIn waveIn;
         private UdpClient udpSender;
@@ -71,7 +72,6 @@ namespace Server
         public frm_server()
         {
             InitializeComponent();
-            GetAudioInputDevicesCombo();
 
             Codecs = new List<INetworkChatCodec>();
             Codecs.Add(new AcmMuLawChatCodec());
@@ -84,6 +84,7 @@ namespace Server
 
             //codec = new Codecs.Gsm610ChatCodec();
             GetAudioCodecsCombo(Codecs);
+            GetAudioInputDevicesCombo();
         }
 
 
@@ -277,22 +278,7 @@ namespace Server
         {
             byte[] encoded = codec.Encode(e.Buffer, 0, e.BytesRecorded);
             udpSender.Send(encoded, encoded.Length);
-            Console.WriteLine("{1} send audio size {0}", encoded.Length, i++);
-
-            //foreach (Socket client in listSocket)
-            //{
-            //    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
-            //    {
-            //        client.Send(encoded, encoded.Length, SocketFlags.None);
-            //        //writer.WriteLine(encoded);
-            //        //writer.Flush();
-            //    }
-            //}
-
-            //foreach (Socket client in listSocket)
-            //{
-            //    client.Send(encoded, encoded.Length, SocketFlags.None);
-            //}
+            //Console.WriteLine("{1} send audio size {0}", encoded.Length, i++);
         }
         #endregion
 
@@ -304,10 +290,6 @@ namespace Server
          **/
         public void StartServer(string ip, int port)
         {
-            // start
-            Console.WriteLine("Open server at {0}:{1} . . .", ip, port);
-            IPAddress ipAddress = IPAddress.Parse(ip);
-
             // Recoding Audio
             waveIn = new WaveIn();
             int inputDeviceNumber = comboBoxInputDevices.SelectedIndex;
@@ -317,33 +299,35 @@ namespace Server
             waveIn.WaveFormat = codec.RecordFormat;
             waveIn.DataAvailable += waveIn_DataAvailable;
             waveIn.StartRecording();
-
-
+            
+            // Open UDP connect for Audio sending
             udpSender = new UdpClient();
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(txt_ip.Text), int.Parse(txt_port.Text));
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Broadcast, port);
             udpSender.Connect(endPoint);
+            Console.WriteLine("Opened UDP for Audio at broadcast {0}:{1}", IPAddress.Broadcast, port);
 
-
+            
+            // Open TCP server for question, create new thread for non-block UI 
             Thread mainThread = new Thread(() =>
             {
+                IPAddress ipAddress = IPAddress.Parse(ip);
                 server = new TcpListener(ipAddress, port);
                 server.Start();
-                connected = true;
+                Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
 
-                // listen from client
-                // open a new Thread if a Client connecting
+                // Listen from client
+                // open a new Thread if a Client connect
                 while (numberConnecting < MAX_CONNECT)
                 {
                     Socket acceptSocket = server.AcceptSocket();
                     listSocket.Add(acceptSocket);
                     numberConnecting++;
-                    txt_numberConnect.Text = numberConnecting.ToString();
+                    txt_numberConnect.Text = numberConnecting.ToString(); // update UI
 
                     if (isDisconnect)
                     {
                         break;
                     }
-
                     // ready for communications
                     if (acceptSocket.Connected)
                     {
@@ -367,7 +351,6 @@ namespace Server
         {
             // okay, a client was connect
             // receive data from client for valid
-
             int questionID = 1;
             string answer = string.Empty;
             string msg = string.Empty;
@@ -382,7 +365,6 @@ namespace Server
 
                 // should flush buffer stream auto 
                 writer.AutoFlush = true;
-
                 Console.WriteLine("<<ID: {0}>> New connect from {1}", numberConnecting, client.RemoteEndPoint);
 
 

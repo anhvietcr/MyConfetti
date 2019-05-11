@@ -116,7 +116,7 @@ namespace Client
         }
 
         int i = 0;
-        byte[] buffer = null;
+        byte[] buffer = new byte[1024];
         byte[] decoded = null;
         private void ListenerThread(object state)
         {
@@ -130,7 +130,6 @@ namespace Client
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
                     Console.WriteLine("{1} audio receive size {0}", decoded.Length, i++);
-
                 }
             }
             catch (SocketException ex)
@@ -159,35 +158,35 @@ namespace Client
             //codec = new UncompressedPcmChatCodec(); // echo                                        
 
 
-            //udpListener = new UdpClient();
-            //udpListener.ExclusiveAddressUse = false;
-            //IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 9999);
+            try
+            {
+                // Audio Record
+                // connect via UDP
+                //IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, port);
+                udpListener = new UdpClient();
+                udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                udpListener.Client.Bind(endPoint);
+                Console.WriteLine("Connect UDP for Audio at {0}:{1}", endPoint.Address, endPoint.Port);
 
-            //udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            //udpListener.ExclusiveAddressUse = false; // multi listening one 1 computer
-            //udpListener.Client.Bind(endPoint);
 
-            //IPAddress multicastaddress = IPAddress.Parse("230.0.0.1");
-            //udpListener.JoinMulticastGroup(multicastaddress);
+                // play audio
+                waveOut = new WaveOut();
+                waveProvider = new BufferedWaveProvider(codec.RecordFormat);
+                waveOut.Init(waveProvider);
+                waveOut.Play();
 
+                connected = true;
 
-            // Audio Record
-            // connect via UDP
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
-            udpListener = new UdpClient();
-            udpListener.ExclusiveAddressUse = false;
-            udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            udpListener.Client.Bind(endPoint);
+                ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
+                ThreadPool.QueueUserWorkItem(this.ListenerThread, threadState);
 
-            // play audio
-            waveOut = new WaveOut();
-            waveProvider = new BufferedWaveProvider(codec.RecordFormat);
-            waveOut.Init(waveProvider);
-            waveOut.Play();
-
-            connected = true;
-            ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
-            ThreadPool.QueueUserWorkItem(this.ListenerThread, threadState);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
 
 
             Thread mainThread = new Thread(() =>
