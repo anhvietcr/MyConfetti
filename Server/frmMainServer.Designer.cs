@@ -45,13 +45,16 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.comboBoxWebcams = new System.Windows.Forms.ComboBox();
+            this.pictureBoxStreamer = new System.Windows.Forms.PictureBox();
+            this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).BeginInit();
             this.SuspendLayout();
             // 
             // txt_ip
             // 
             this.txt_ip.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_ip.Location = new System.Drawing.Point(12, 541);
+            this.txt_ip.Location = new System.Drawing.Point(16, 594);
             this.txt_ip.Name = "txt_ip";
             this.txt_ip.Size = new System.Drawing.Size(107, 24);
             this.txt_ip.TabIndex = 0;
@@ -60,7 +63,7 @@
             // btn_open
             // 
             this.btn_open.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_open.Location = new System.Drawing.Point(180, 539);
+            this.btn_open.Location = new System.Drawing.Point(184, 592);
             this.btn_open.Name = "btn_open";
             this.btn_open.Size = new System.Drawing.Size(80, 28);
             this.btn_open.TabIndex = 1;
@@ -71,7 +74,7 @@
             // txt_port
             // 
             this.txt_port.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_port.Location = new System.Drawing.Point(125, 541);
+            this.txt_port.Location = new System.Drawing.Point(129, 594);
             this.txt_port.Name = "txt_port";
             this.txt_port.Size = new System.Drawing.Size(49, 24);
             this.txt_port.TabIndex = 3;
@@ -79,10 +82,11 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.pictureBoxStreamer);
             this.groupBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox1.Location = new System.Drawing.Point(12, 58);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(700, 468);
+            this.groupBox1.Size = new System.Drawing.Size(652, 511);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Streamer";
@@ -91,7 +95,7 @@
             // 
             this.btn_play.Enabled = false;
             this.btn_play.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btn_play.Location = new System.Drawing.Point(378, 541);
+            this.btn_play.Location = new System.Drawing.Point(358, 594);
             this.btn_play.Name = "btn_play";
             this.btn_play.Size = new System.Drawing.Size(154, 63);
             this.btn_play.TabIndex = 1;
@@ -103,7 +107,7 @@
             // 
             this.txt_numberConnect.AutoSize = true;
             this.txt_numberConnect.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_numberConnect.Location = new System.Drawing.Point(687, 9);
+            this.txt_numberConnect.Location = new System.Drawing.Point(652, 10);
             this.txt_numberConnect.Name = "txt_numberConnect";
             this.txt_numberConnect.Size = new System.Drawing.Size(16, 18);
             this.txt_numberConnect.TabIndex = 5;
@@ -113,7 +117,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(597, 9);
+            this.label1.Location = new System.Drawing.Point(562, 10);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(73, 18);
             this.label1.TabIndex = 6;
@@ -124,7 +128,7 @@
             this.btnNext.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnNext.Enabled = false;
             this.btnNext.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnNext.Location = new System.Drawing.Point(571, 541);
+            this.btnNext.Location = new System.Drawing.Point(524, 594);
             this.btnNext.Name = "btnNext";
             this.btnNext.Size = new System.Drawing.Size(140, 63);
             this.btnNext.TabIndex = 10;
@@ -135,7 +139,7 @@
             // btnChoose
             // 
             this.btnChoose.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnChoose.Location = new System.Drawing.Point(317, 580);
+            this.btnChoose.Location = new System.Drawing.Point(321, 633);
             this.btnChoose.Name = "btnChoose";
             this.btnChoose.Size = new System.Drawing.Size(31, 24);
             this.btnChoose.TabIndex = 9;
@@ -146,7 +150,7 @@
             // txtBoxFileName
             // 
             this.txtBoxFileName.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtBoxFileName.Location = new System.Drawing.Point(88, 580);
+            this.txtBoxFileName.Location = new System.Drawing.Point(92, 633);
             this.txtBoxFileName.Name = "txtBoxFileName";
             this.txtBoxFileName.Size = new System.Drawing.Size(260, 24);
             this.txtBoxFileName.TabIndex = 8;
@@ -155,7 +159,7 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(12, 583);
+            this.label2.Location = new System.Drawing.Point(16, 636);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(63, 18);
             this.label2.TabIndex = 7;
@@ -211,21 +215,29 @@
             this.label5.TabIndex = 6;
             this.label5.Text = "Webcam:";
             // 
-            // comboBox1
+            // comboBoxWebcams
             // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(378, 31);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(152, 21);
-            this.comboBox1.TabIndex = 11;
+            this.comboBoxWebcams.FormattingEnabled = true;
+            this.comboBoxWebcams.Location = new System.Drawing.Point(378, 31);
+            this.comboBoxWebcams.Name = "comboBoxWebcams";
+            this.comboBoxWebcams.Size = new System.Drawing.Size(152, 21);
+            this.comboBoxWebcams.TabIndex = 11;
+            // 
+            // pictureBoxStreamer
+            // 
+            this.pictureBoxStreamer.Location = new System.Drawing.Point(6, 23);
+            this.pictureBoxStreamer.Name = "pictureBoxStreamer";
+            this.pictureBoxStreamer.Size = new System.Drawing.Size(640, 480);
+            this.pictureBoxStreamer.TabIndex = 0;
+            this.pictureBoxStreamer.TabStop = false;
             // 
             // frm_server
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(721, 617);
+            this.ClientSize = new System.Drawing.Size(677, 664);
             this.Controls.Add(this.comboBoxInputDevices);
-            this.Controls.Add(this.comboBox1);
+            this.Controls.Add(this.comboBoxWebcams);
             this.Controls.Add(this.comboBoxCodecs);
             this.Controls.Add(this.btnNext);
             this.Controls.Add(this.btnChoose);
@@ -241,9 +253,13 @@
             this.Controls.Add(this.btn_play);
             this.Controls.Add(this.btn_open);
             this.Controls.Add(this.txt_ip);
+            this.MaximumSize = new System.Drawing.Size(693, 703);
+            this.MinimumSize = new System.Drawing.Size(693, 703);
             this.Name = "frm_server";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Server MyConfetti";
+            this.groupBox1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -268,7 +284,8 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.ComboBox comboBoxWebcams;
+        private System.Windows.Forms.PictureBox pictureBoxStreamer;
     }
 }
 

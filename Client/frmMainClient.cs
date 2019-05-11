@@ -46,11 +46,7 @@ namespace Client
             InitializeComponent();
         }
 
-        /**
-         * 
-         * Buttons Event
-         * 
-         * */
+        #region Buttons Event
         private void btn_connect_Click(object sender, EventArgs e)
         {
             string ip = null;
@@ -101,7 +97,9 @@ namespace Client
 
             isDisconnect = true;
         }
+        #endregion
 
+        #region Audio
         class ListenerThreadState
         {
             public IPEndPoint EndPoint { get; set; }
@@ -122,7 +120,7 @@ namespace Client
                     buffer = udpListener.Receive(ref endPoint);
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
-                    Console.WriteLine("{1} audio receive size {0}", decoded.Length, i++);
+                    //Console.WriteLine("{1} audio receive size {0}", decoded.Length, i++);
                 }
             }
             catch (SocketException ex)
@@ -131,7 +129,7 @@ namespace Client
                 throw;
             }
         }
-
+        #endregion
 
         /**
          * 
@@ -150,7 +148,6 @@ namespace Client
             //codec = new TrueSpeechChatCodec(); // error
             //codec = new UncompressedPcmChatCodec(); // echo                                        
 
-
             try
             {
                 // Audio Record
@@ -161,7 +158,6 @@ namespace Client
                 udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 udpListener.Client.Bind(endPoint);
                 Console.WriteLine("Connect UDP for Audio at {0}:{1}", endPoint.Address, endPoint.Port);
-
 
                 // play audio
                 waveOut = new WaveOut();
@@ -200,13 +196,11 @@ namespace Client
                     writer = new StreamWriter(streamer);
                     writer.AutoFlush = true;
 
-
                     // get user ID, state game
                     writer.WriteLine("init");
                     id = reader.ReadLine();
                     state = reader.ReadLine();
                     Console.WriteLine("My received id: {0}, game play? {1}", id, state);
-
 
                     // get current question 
                     if (state.Contains("True"))
@@ -235,6 +229,10 @@ namespace Client
 
                         switch (msg)
                         {
+                            case "img":
+                                Console.WriteLine("get img");
+                                break;
+
                             case "play":
                                 MessageBox.Show("Game play . . .");
                                 break;

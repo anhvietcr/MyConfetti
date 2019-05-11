@@ -14,14 +14,13 @@ using System.Threading;
 using System.IO;
 using System.Timers;
 using System.Collections;
-using System.Runtime.Serialization.Formatters.Binary;
 using Question;
 using NAudio.Wave;
 using NAudio.Wave.Compression;
 using Codecs;
 using Codecs.Codecs;
 using Newtonsoft.Json.Linq;
-
+using AForge.Video.DirectShow;
 
 
 /*
@@ -59,12 +58,22 @@ namespace Server
         private string _correctAnswer { get; set; }         = string.Empty;
         private static bool _isNewQuestion { get; set; }    = false;
 
+        private volatile NetworkStream streamer = null;
+        private volatile StreamReader reader = null;
+        private volatile StreamWriter writer = null;
+
+
         // Audio record Properties
         private WaveIn waveIn;
         private UdpClient udpSender;
         private INetworkChatCodec codec;
         private volatile bool connected;
         private List<INetworkChatCodec> Codecs;
+
+        // Webcam record Properties
+        private FilterInfoCollection webcam;
+        private VideoCaptureDevice cam;
+
         #endregion
 
 
@@ -72,26 +81,30 @@ namespace Server
         {
             InitializeComponent();
 
+            // Audio
             Codecs = new List<INetworkChatCodec>();
-            Codecs.Add(new AcmMuLawChatCodec());
             Codecs.Add(new G722ChatCodec());
-            Codecs.Add(new Gsm610ChatCodec());
-            Codecs.Add(new MicrosoftAdpcmChatCodec());
-            Codecs.Add(new MuLawChatCodec());
-            Codecs.Add(new TrueSpeechChatCodec());
-            Codecs.Add(new UncompressedPcmChatCodec());
+            //Codecs.Add(new AcmMuLawChatCodec());
+            //Codecs.Add(new Gsm610ChatCodec());
+            //Codecs.Add(new MicrosoftAdpcmChatCodec());
+            //Codecs.Add(new MuLawChatCodec());
+            //Codecs.Add(new TrueSpeechChatCodec());
+            //Codecs.Add(new UncompressedPcmChatCodec());
 
             //codec = new Codecs.Gsm610ChatCodec();
             GetAudioCodecsCombo(Codecs);
             GetAudioInputDevicesCombo();
+            GetWebcamDevicesCombo();
+           
+
+            // list webcam size available
+            //for (int i = 0; i < cam.VideoCapabilities.Length; i++)
+            //{
+            //    string resolution_size = cam.VideoCapabilities[i].FrameSize.ToString();
+            //    Console.WriteLine(resolution_size);
+            //}
         }
 
-
-        /**
-         * 
-         * Buttons Event
-         * 
-         **/
         #region Buttons event
         private void btn_open_Click(object sender, EventArgs e)
         {
@@ -116,6 +129,7 @@ namespace Server
                 // toggle button 
                 comboBoxCodecs.Enabled = false;
                 comboBoxInputDevices.Enabled = false;
+                comboBoxWebcams.Enabled = false;
                 btn_play.Enabled = true;
                 btn_open.Text = "Close";
 
@@ -125,6 +139,7 @@ namespace Server
             {
                 comboBoxCodecs.Enabled = true;
                 comboBoxInputDevices.Enabled = true;
+                comboBoxWebcams.Enabled = true;
                 btn_play.Enabled = false;
                 btn_open.Text = "Open";
                 CloseListener();
@@ -261,7 +276,14 @@ namespace Server
                 string text = String.Format("{0} ({1})", codec.Name, bitRate);
                 this.comboBoxCodecs.Items.Add(new CodecComboItem() { Text = text, Codec = codec });
             }
-            this.comboBoxCodecs.SelectedIndex = 0;
+            if (comboBoxCodecs.Items.Count > 0)
+            {
+                comboBoxCodecs.SelectedIndex = 0;
+            }
+            else
+            {
+                comboBoxCodecs.Items.Add("No Codecs detect");
+            }
         }
 
         // List all microphone devices
@@ -276,6 +298,10 @@ namespace Server
             {
                 comboBoxInputDevices.SelectedIndex = 0;
             }
+            else
+            {
+                comboBoxInputDevices.Items.Add("No Audio Input detect");
+            }
         }
 
         int i = 0;
@@ -287,6 +313,81 @@ namespace Server
         }
         #endregion
 
+        #region Webcam
+        void GetWebcamDevicesCombo()
+        {
+            // Webcam
+            webcam = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            foreach (FilterInfo VideoCaptureDevice in webcam)
+            {
+                comboBoxWebcams.Items.Add(VideoCaptureDevice.Name);
+            }
+            if (comboBoxWebcams.Items.Count > 0)
+            {
+                comboBoxWebcams.SelectedIndex = 0;
+            } else
+            {
+                comboBoxWebcams.Items.Add("No Webcam detect");
+            }
+        }
+
+        void showMyCam(object sender, AForge.Video.NewFrameEventArgs eventArgs)
+        {
+            Bitmap bit = (Bitmap)eventArgs.Frame.Clone();
+            pictureBoxStreamer.Image = bit;
+
+            //SendImageToClients(bit);
+        }
+        public void SendImageToClients(Image img = null)
+        {
+            //Bitmap x = (Bitmap)pictureBox1.Image.Clone();
+            Bitmap bImage = new Bitmap(img);
+            Byte[] bStream = ImageToByte(bImage);
+
+            if (connected && server != null)
+            {
+                Console.WriteLine("connected");
+                try
+                {
+                    using (TcpClient client = server.AcceptTcpClient())
+                    {
+                        NetworkStream streamer = client.GetStream();
+                        StreamWriter writer = new StreamWriter(streamer);
+                        try
+                        {
+                            writer.Write("img");
+                            streamer.Write(bStream, 0, bStream.Length);
+                        }
+                        catch (SocketException ex)
+                        {
+                            Console.WriteLine("SocketException: " + ex.Message);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            throw;
+                        }
+                    }
+                }
+                catch (SocketException ex)
+                {
+                    Console.WriteLine("SocketException: " + ex.Message);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    throw;
+                }
+            }
+        }
+        private byte[] ImageToByte(Image img)
+        {
+            MemoryStream mMemoryStream = new MemoryStream();
+            img.Save(mMemoryStream, System.Drawing.Imaging.ImageFormat.Gif);
+            return mMemoryStream.ToArray();
+        }
+        #endregion
 
         /**
          * 
@@ -311,6 +412,11 @@ namespace Server
             udpSender.Connect(endPoint);
             Console.WriteLine("Opened UDP for Audio at broadcast {0}:{1}", IPAddress.Broadcast, port);
 
+            // Open Webcam 
+            cam = new VideoCaptureDevice(webcam[comboBoxWebcams.SelectedIndex].MonikerString);
+            cam.VideoResolution = cam.VideoCapabilities[0]; // 640 x 480
+            cam.NewFrame += new AForge.Video.NewFrameEventHandler(showMyCam);
+            cam.Start();
             
             // Open TCP server for question, create new thread for non-block UI 
             Thread mainThread = new Thread(() =>
@@ -318,8 +424,10 @@ namespace Server
                 IPAddress ipAddress = IPAddress.Parse(ip);
                 server = new TcpListener(ipAddress, port);
                 server.Start();
+                connected = true;
                 Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
 
+               
                 // Listen from client
                 // open a new Thread if a Client connect
                 while (_numberConnecting < MAX_CONNECT)
@@ -364,18 +472,31 @@ namespace Server
             try
             {
                 // read, write from client using stream, over use bytes[]
-                NetworkStream streamer = new NetworkStream(client);
-                StreamReader reader = new StreamReader(streamer);
-                StreamWriter writer = new StreamWriter(streamer);
+                //NetworkStream streamer = new NetworkStream(client);
+                //StreamReader reader = new StreamReader(streamer);
+                //StreamWriter writer = new StreamWriter(streamer);
+                 streamer = new NetworkStream(client);
+                 reader = new StreamReader(streamer);
+                 writer = new StreamWriter(streamer);
 
                 // should flush buffer stream auto 
                 writer.AutoFlush = true;
                 Console.WriteLine("<<ID: {0}>> New connect from {1}", _numberConnecting, client.RemoteEndPoint);
 
+                // Send Webcam to Clients
+                //this.Invoke((MethodInvoker)delegate
+                //{
+                //    while (connected)
+                //    {
+                //        Byte[] bStreams = null;
+                //        ImageConverter imgConverter = new ImageConverter();
+                //        bStreams = (System.Byte[])imgConverter.ConvertTo(pictureBoxStreamer.Image, Type.GetType("System.Byte[]"));
 
-                //var timer = new System.Timers.Timer(1000);
-                //timer.Elapsed += timer_Elapsed;
-                //timer.Start();
+                //        writer.Write("img");
+                //        streamer.Write(bStreams, 0, bStreams.Length);
+                //    }
+                //});
+
 
                 while (true)
                 {
