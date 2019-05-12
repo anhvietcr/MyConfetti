@@ -1,2 +1,10 @@
-"{'Question':'Cau hoi ????','A':'Dap an A','B':'Dap an B','C':'Dap an C','answer':'A',}"
-"{'Question':'Cau hoi2 ????','A':'Dap an A','B':'Dap an B','C':'Dap an C','answer':'B',}"
+{'Question':'Đâu không phải là một ngôn ngữ lập trình?','A':'HTML','B':'C/C++','C':'PHP','answer':'A',}
+{'Question':'Lệnh xóa bảng KH trong cơ sở dữ liệu SQL?','A':'DROP TABLE KH','B':'DROP KH','C':'DELETE TABLE KH','answer':'A',}
+{'Question':'Một giá trị hằng đặc biệt trong c/c++','A':'ZERO','B':'NULL','C':'CONST','answer':'B',}
+{'Question':'Một đơn vị octect có bao nhiêu bytes?','A':'1','B':'2','C':'4','answer':'A',}
+{'Question':'Trong Vim, nhấn phím nào để bắt đầu chỉnh sửa dữ liệu?','A':'U','B':'E','C':'I','answer':'C',}
+{'Question':'Chương trình nào sau đây luôn luôn nằm trong bộ nhớ?','A':'Loader','B':'Linker','C':'Assembler','answer':'A',}
+{'Question':'Thuật toán nào sau đây đảm bảo tìm được đường đi ngắn nhất với đồ thị có trọng số','A':'UCS','B':'ASTAR(A*)','C':'BFS','answer':'A',}
+{'Question':'Cách truyền dữ liệu trong tầng Transpot mô hình OSI, Truyền dữ liệu dạng:','A':'End-to-end','B':'Link-to-link','C':'Host-to-host','answer':'A',}
+{'Question':'Tên công ty cung cấp hệ điều hành RHEL','A':'Canonical','B':'IBM','C':'Redhat','answer':'C',}
+{'Question':'Tên công nghệ định vị toàn cầu của Nga, ngang ngửa với côn nghệ định vị toàn cầu GPS của Mỹ?','A':'RGPS','B':'GLONASS','C':'A-GPS','answer':'B',}
