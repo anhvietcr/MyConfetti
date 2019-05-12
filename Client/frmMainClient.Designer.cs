@@ -44,12 +44,15 @@
             this.label8 = new System.Windows.Forms.Label();
             this.groupBox_webcam = new System.Windows.Forms.GroupBox();
             this.txt_status = new System.Windows.Forms.Label();
+            this.pictureBoxStreamer = new System.Windows.Forms.PictureBox();
             this.groupBox_question.SuspendLayout();
+            this.groupBox_webcam.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).BeginInit();
             this.SuspendLayout();
             // 
             // txt_port
             // 
-            this.txt_port.Location = new System.Drawing.Point(90, 537);
+            this.txt_port.Location = new System.Drawing.Point(89, 548);
             this.txt_port.Name = "txt_port";
             this.txt_port.Size = new System.Drawing.Size(41, 20);
             this.txt_port.TabIndex = 7;
@@ -57,7 +60,7 @@
             // 
             // btn_connect
             // 
-            this.btn_connect.Location = new System.Drawing.Point(137, 535);
+            this.btn_connect.Location = new System.Drawing.Point(136, 546);
             this.btn_connect.Name = "btn_connect";
             this.btn_connect.Size = new System.Drawing.Size(75, 23);
             this.btn_connect.TabIndex = 5;
@@ -67,7 +70,7 @@
             // 
             // txt_ip
             // 
-            this.txt_ip.Location = new System.Drawing.Point(12, 537);
+            this.txt_ip.Location = new System.Drawing.Point(11, 548);
             this.txt_ip.Name = "txt_ip";
             this.txt_ip.Size = new System.Drawing.Size(72, 20);
             this.txt_ip.TabIndex = 4;
@@ -76,6 +79,7 @@
             // answer_A
             // 
             this.answer_A.AutoSize = true;
+            this.answer_A.Enabled = false;
             this.answer_A.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_A.Location = new System.Drawing.Point(194, 64);
             this.answer_A.MinimumSize = new System.Drawing.Size(150, 30);
@@ -95,9 +99,9 @@
             this.groupBox_question.Controls.Add(this.txt_question);
             this.groupBox_question.Controls.Add(this.answer_A);
             this.groupBox_question.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.groupBox_question.Location = new System.Drawing.Point(12, 348);
+            this.groupBox_question.Location = new System.Drawing.Point(6, 328);
             this.groupBox_question.Name = "groupBox_question";
-            this.groupBox_question.Size = new System.Drawing.Size(629, 172);
+            this.groupBox_question.Size = new System.Drawing.Size(640, 172);
             this.groupBox_question.TabIndex = 9;
             this.groupBox_question.TabStop = false;
             this.groupBox_question.Text = "Câu hỏi";
@@ -105,6 +109,7 @@
             // answer_C
             // 
             this.answer_C.AutoSize = true;
+            this.answer_C.Enabled = false;
             this.answer_C.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_C.Location = new System.Drawing.Point(194, 136);
             this.answer_C.MinimumSize = new System.Drawing.Size(150, 30);
@@ -119,6 +124,7 @@
             // answer_B
             // 
             this.answer_B.AutoSize = true;
+            this.answer_B.Enabled = false;
             this.answer_B.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.answer_B.Location = new System.Drawing.Point(194, 100);
             this.answer_B.MinimumSize = new System.Drawing.Size(150, 30);
@@ -141,7 +147,7 @@
             // txt_question
             // 
             this.txt_question.AutoSize = true;
-            this.txt_question.Location = new System.Drawing.Point(16, 22);
+            this.txt_question.Location = new System.Drawing.Point(6, 22);
             this.txt_question.Name = "txt_question";
             this.txt_question.Size = new System.Drawing.Size(168, 18);
             this.txt_question.TabIndex = 9;
@@ -160,7 +166,7 @@
             // btn_close
             // 
             this.btn_close.Enabled = false;
-            this.btn_close.Location = new System.Drawing.Point(218, 535);
+            this.btn_close.Location = new System.Drawing.Point(217, 546);
             this.btn_close.Name = "btn_close";
             this.btn_close.Size = new System.Drawing.Size(75, 23);
             this.btn_close.TabIndex = 11;
@@ -200,9 +206,11 @@
             // 
             // groupBox_webcam
             // 
+            this.groupBox_webcam.Controls.Add(this.pictureBoxStreamer);
+            this.groupBox_webcam.Controls.Add(this.groupBox_question);
             this.groupBox_webcam.Location = new System.Drawing.Point(12, 34);
             this.groupBox_webcam.Name = "groupBox_webcam";
-            this.groupBox_webcam.Size = new System.Drawing.Size(629, 308);
+            this.groupBox_webcam.Size = new System.Drawing.Size(653, 506);
             this.groupBox_webcam.TabIndex = 15;
             this.groupBox_webcam.TabStop = false;
             this.groupBox_webcam.Text = "Streamer";
@@ -211,17 +219,25 @@
             // 
             this.txt_status.AutoSize = true;
             this.txt_status.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_status.Location = new System.Drawing.Point(14, 563);
+            this.txt_status.Location = new System.Drawing.Point(13, 574);
             this.txt_status.Name = "txt_status";
             this.txt_status.Size = new System.Drawing.Size(66, 13);
             this.txt_status.TabIndex = 16;
             this.txt_status.Text = "Not connect";
             // 
+            // pictureBoxStreamer
+            // 
+            this.pictureBoxStreamer.Location = new System.Drawing.Point(6, 19);
+            this.pictureBoxStreamer.Name = "pictureBoxStreamer";
+            this.pictureBoxStreamer.Size = new System.Drawing.Size(640, 303);
+            this.pictureBoxStreamer.TabIndex = 0;
+            this.pictureBoxStreamer.TabStop = false;
+            // 
             // frmMainClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(650, 584);
+            this.ClientSize = new System.Drawing.Size(677, 590);
             this.Controls.Add(this.txt_status);
             this.Controls.Add(this.groupBox_webcam);
             this.Controls.Add(this.label8);
@@ -229,7 +245,6 @@
             this.Controls.Add(this.label6);
             this.Controls.Add(this.btn_close);
             this.Controls.Add(this.txt_noti);
-            this.Controls.Add(this.groupBox_question);
             this.Controls.Add(this.txt_port);
             this.Controls.Add(this.btn_connect);
             this.Controls.Add(this.txt_ip);
@@ -238,6 +253,8 @@
             this.Text = "Client MyConfetti";
             this.groupBox_question.ResumeLayout(false);
             this.groupBox_question.PerformLayout();
+            this.groupBox_webcam.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -261,6 +278,7 @@
         private System.Windows.Forms.Button answer_C;
         private System.Windows.Forms.Button answer_B;
         private System.Windows.Forms.Label txt_status;
+        private System.Windows.Forms.PictureBox pictureBoxStreamer;
     }
 }
 
