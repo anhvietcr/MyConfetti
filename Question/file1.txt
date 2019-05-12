@@ -1,0 +1,10 @@
+{'Question':'Facebook có tên đầu tiên là ?','A':'facemash','B':'facemask','C':'facemark','answer':'A',}
+{'Question':'Máy tính điện tử ngày nay đc làm từ','A':'công nghệ bán dẫn','B':'công nghệ đèn chân không','C':'công nghệ core 2 duo','answer':'A',}
+{'Question':'Trong mô hình OSI, tầng liền trước tần Application là?','A':'session','B':'transportation','C':'presentation','answer':'C',}
+{'Question':'thuật toán nào sau đây không sử dụng nguyên lí chia để trị ?','A':'merge sort','B':'heap sort','C':'quick sort','answer':'B',}
+{'Question':'Hàm làm tròn trong Excel là ?','A':' sround','B':'mround','C':'fround','answer':'B',}
+{'Question':'What punctuation ends most lines of C code?','A':' ,','B':'.','C':';','answer':'C',}
+{'Question':'Từ khóa để chỉ điều kiện trong truy vấn của SQL Server','A':'select','B':'distinct','C':' having','answer':'C',}
+{'Question':'Trạng thái xảy ra trong môi trường đa nhiệm, khi 2 hoặc nhiều tiến trình đi vào vòng lặp chờ tài nguyên mãi mãi?','A':'deadlock','B':'thread pool','C':' mutex','answer':'A',}
+{'Question':'SQL là tên viết tắt của','A':'structure question language','B':'structure query language','C':'structure query locator','answer':'B',}
+{'Question':'Microsoft mua lại Sky với giá 8.5 tỷ USD vào năm nào?','A':'2009','B':'2010','C':'2011','answer':'C',}
