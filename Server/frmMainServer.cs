@@ -62,10 +62,9 @@ namespace Server
         private volatile StreamReader reader = null;
         private volatile StreamWriter writer = null;
 
-
         // Audio record Properties
         private WaveIn waveIn;
-        private UdpClient udpSender;
+        private UdpClient udpAudioSender;
         private INetworkChatCodec codec;
         private volatile bool connected;
         private List<INetworkChatCodec> Codecs;
@@ -73,7 +72,10 @@ namespace Server
         // Webcam record Properties
         private FilterInfoCollection webcam;
         private VideoCaptureDevice cam;
-
+        private TcpListener tcpWebcamServer;
+        private volatile bool webcamConnected;
+        private Socket webcamSocket;
+        private volatile List<Socket> _listSocketWebcam = new List<Socket>();
         #endregion
 
 
@@ -159,7 +161,7 @@ namespace Server
                 waveIn.Dispose();
 
                 //waveOut.Stop();
-                //udpSender.Close();
+                //udpAudioSender.Close();
                 //udpListener.Close();
                 //waveOut.Dispose();
 
@@ -304,12 +306,11 @@ namespace Server
             }
         }
 
-        int i = 0;
         void waveIn_DataAvailable(object sender, WaveInEventArgs e)
         {
             byte[] encoded = codec.Encode(e.Buffer, 0, e.BytesRecorded);
-            udpSender.Send(encoded, encoded.Length);
-            //Console.WriteLine("{1} send audio size {0}", encoded.Length, i++);
+            udpAudioSender.Send(encoded, encoded.Length);
+            Console.WriteLine("Send audio size {0}", encoded.Length);
         }
         #endregion
 
@@ -336,38 +337,28 @@ namespace Server
             Bitmap bit = (Bitmap)eventArgs.Frame.Clone();
             pictureBoxStreamer.Image = bit;
 
-            //SendImageToClients(bit);
+            // Detect cross threading
+            this.Invoke((MethodInvoker)delegate
+            {
+                SendImageToClients(bit);
+            });
         }
+
         public void SendImageToClients(Image img = null)
         {
-            //Bitmap x = (Bitmap)pictureBox1.Image.Clone();
             Bitmap bImage = new Bitmap(img);
-            Byte[] bStream = ImageToByte(bImage);
+            byte[] bStream = ImageToByte(bImage);
 
-            if (connected && server != null)
+            if (webcamConnected)
             {
-                Console.WriteLine("connected");
                 try
                 {
-                    using (TcpClient client = server.AcceptTcpClient())
+                    // message to all client
+                    foreach (Socket client in _listSocketWebcam)
                     {
-                        NetworkStream streamer = client.GetStream();
-                        StreamWriter writer = new StreamWriter(streamer);
-                        try
-                        {
-                            writer.Write("img");
-                            streamer.Write(bStream, 0, bStream.Length);
-                        }
-                        catch (SocketException ex)
-                        {
-                            Console.WriteLine("SocketException: " + ex.Message);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                            throw;
-                        }
+                        client.Send(bStream, bStream.Length, SocketFlags.None);
                     }
+                    Console.WriteLine("send webcam size {0}", bStream.Length);
                 }
                 catch (SocketException ex)
                 {
@@ -381,6 +372,7 @@ namespace Server
                 }
             }
         }
+
         private byte[] ImageToByte(Image img)
         {
             MemoryStream mMemoryStream = new MemoryStream();
@@ -407,16 +399,17 @@ namespace Server
             waveIn.StartRecording();
             
             // Open UDP connect for Audio sending
-            udpSender = new UdpClient();
+            udpAudioSender = new UdpClient();
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Broadcast, port);
-            udpSender.Connect(endPoint);
+            udpAudioSender.Connect(endPoint);
             Console.WriteLine("Opened UDP for Audio at broadcast {0}:{1}", IPAddress.Broadcast, port);
 
-            // Open Webcam 
+            // Start Webcam 
             cam = new VideoCaptureDevice(webcam[comboBoxWebcams.SelectedIndex].MonikerString);
             cam.VideoResolution = cam.VideoCapabilities[0]; // 640 x 480
             cam.NewFrame += new AForge.Video.NewFrameEventHandler(showMyCam);
             cam.Start();
+
             
             // Open TCP server for question, create new thread for non-block UI 
             Thread mainThread = new Thread(() =>
@@ -427,13 +420,23 @@ namespace Server
                 connected = true;
                 Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
 
-               
+                // Open Tcp for Webcam streaming
+                tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
+                tcpWebcamServer.Start();
+                webcamConnected = true;
+                Console.WriteLine("Opened UDP for Webcam at broadcast {0}:{1}", ip, port + 1);
+
                 // Listen from client
                 // open a new Thread if a Client connect
                 while (_numberConnecting < MAX_CONNECT)
                 {
                     Socket acceptSocket = server.AcceptSocket();
+                    webcamSocket = tcpWebcamServer.AcceptSocket();
+
+                    // Add all socket connected to control
+                    _listSocketWebcam.Add(webcamSocket);
                     _listSocket.Add(acceptSocket);
+
                     _numberConnecting++;
                     txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
 
@@ -472,9 +475,6 @@ namespace Server
             try
             {
                 // read, write from client using stream, over use bytes[]
-                //NetworkStream streamer = new NetworkStream(client);
-                //StreamReader reader = new StreamReader(streamer);
-                //StreamWriter writer = new StreamWriter(streamer);
                  streamer = new NetworkStream(client);
                  reader = new StreamReader(streamer);
                  writer = new StreamWriter(streamer);
@@ -482,21 +482,6 @@ namespace Server
                 // should flush buffer stream auto 
                 writer.AutoFlush = true;
                 Console.WriteLine("<<ID: {0}>> New connect from {1}", _numberConnecting, client.RemoteEndPoint);
-
-                // Send Webcam to Clients
-                //this.Invoke((MethodInvoker)delegate
-                //{
-                //    while (connected)
-                //    {
-                //        Byte[] bStreams = null;
-                //        ImageConverter imgConverter = new ImageConverter();
-                //        bStreams = (System.Byte[])imgConverter.ConvertTo(pictureBoxStreamer.Image, Type.GetType("System.Byte[]"));
-
-                //        writer.Write("img");
-                //        streamer.Write(bStreams, 0, bStreams.Length);
-                //    }
-                //});
-
 
                 while (true)
                 {
@@ -590,40 +575,6 @@ namespace Server
                     writer.WriteLine(@jsonQuestion);
                 }
             }
-        }
-
-        static string getQuestion(int i)
-        {
-            // get new question by ID
-            return @"{'Question':'Cau hoi ????','A':'Dap an A','B':'Dap an B','C':'Dap an C','answer':'A',}";
-        }
-
-        // every 1 second timer tick
-        private void timer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            if (!_isPlay) return;
-
-            if (_numberQuestion >= 10)
-            {
-                return;
-                // done a collect include 10 question
-            }
-
-            Thread.Sleep(3000);
-            tick += 1;
-            //Console.Clear();
-            Console.WriteLine("{0}s", tick);
-
-            //if (tick == 10)
-            //{
-            //    Console.WriteLine("New question avaliable");
-            //    _isNewQuestion = true;
-            //    tick = 0;
-            //    ++_numberQuestion;
-
-            //    _jsonQuestion = getQuestion(_numberQuestion);
-            //    sendQuestion(_jsonQuestion);
-            //}
         }
     }
 }

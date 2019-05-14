@@ -34,16 +34,25 @@ namespace Client
         private static bool isDisconnect                = false;
 
         // Audio record Properties
-        private UdpClient udpListener;
+        private UdpClient udpAudioListener;
         private IWavePlayer waveOut;
         private BufferedWaveProvider waveProvider;
         private INetworkChatCodec codec;
         private volatile bool connected;
+
+        // Webcam
+        private UdpClient udpWebcamListener;
+        private TcpClient TcpWebcamClient;
         #endregion
 
         public frmMainClient()
         {
             InitializeComponent();
+
+            txt_question.Location = new Point(-31, -334);
+            answer_A.Location = new Point(-165, -384);
+            answer_B.Location = new Point(-165, -420);
+            answer_C.Location = new Point(-165, -456);
         }
 
         #region Buttons Event
@@ -84,6 +93,11 @@ namespace Client
             answer_B.Enabled = false;
             answer_C.Enabled = false;
 
+            answer_A.BackColor = Color.Gray;
+            answer_B.BackColor = Color.Gray;
+            answer_C.BackColor = Color.Gray;
+            (sender as Button).BackColor = Color.Green;
+
             writer.WriteLine("answer");
             writer.WriteLine(id);
             writer.WriteLine(answer);
@@ -106,10 +120,9 @@ namespace Client
             public INetworkChatCodec Codec { get; set; }
         }
 
-        int i = 0;
         byte[] buffer = new byte[1024];
         byte[] decoded = null;
-        private void ListenerThread(object state)
+        private void ListenerAudioThread(object state)
         {
             ListenerThreadState listenerThreadState = (ListenerThreadState)state;
             IPEndPoint endPoint = listenerThreadState.EndPoint;
@@ -117,10 +130,10 @@ namespace Client
             {
                 while (connected)
                 {
-                    buffer = udpListener.Receive(ref endPoint);
+                    buffer = udpAudioListener.Receive(ref endPoint);
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
-                    //Console.WriteLine("{1} audio receive size {0}", decoded.Length, i++);
+                    Console.WriteLine("audio receive size {0}", decoded.Length);
                 }
             }
             catch (SocketException ex)
@@ -128,6 +141,64 @@ namespace Client
                 Console.WriteLine(ex.Message);
                 throw;
             }
+        }
+        #endregion
+
+        #region Webcam
+        private void ListenerWebcamThread(object sender)
+        {
+            try
+            {
+                while (connected)
+                {
+                    NetworkStream ns = TcpWebcamClient.GetStream();
+
+                    byte[] data = Receive(ns);
+                    byte[] outputBuffer = new byte[data.Length];
+                    Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
+
+                    // add to picture streamer
+                    pictureBoxStreamer.Image = ByteToImage(data);
+                }
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+        }
+        private byte[] Receive(NetworkStream netstr)
+        {
+            try
+            {
+                // Buffer to store the response bytes.
+                byte[] recv = new Byte[256 * 1000];
+
+                // Read the first batch of the TcpServer response bytes.
+                int bytes = netstr.Read(recv, 0, recv.Length);
+                byte[] a = new byte[bytes];
+
+                for (int i = 0; i < bytes; i++)
+                {
+                    a[i] = recv[i];
+                }
+                return a;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+
+                return null;
+            }
+
+        }
+        public Image ByteToImage(byte[] byteArrayIn)
+        {
+
+            System.Drawing.ImageConverter converter = new System.Drawing.ImageConverter();
+            Image img = (Image)converter.ConvertFrom(byteArrayIn);
+
+            return img;
         }
         #endregion
 
@@ -150,25 +221,30 @@ namespace Client
 
             try
             {
-                // Audio Record
-                // connect via UDP
-                //IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                // Audio Receive
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, port);
-                udpListener = new UdpClient();
-                udpListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                udpListener.Client.Bind(endPoint);
+                udpAudioListener = new UdpClient();
+                udpAudioListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                udpAudioListener.Client.Bind(endPoint);
                 Console.WriteLine("Connect UDP for Audio at {0}:{1}", endPoint.Address, endPoint.Port);
 
-                // play audio
+                // Webcam Receive
+                TcpWebcamClient = new TcpClient();
+                TcpWebcamClient.Connect(ip, port + 1);
+                Console.WriteLine("Connect UDP for Webcam at {0}:{1}", ip, port + 1);
+
+                connected = true;
+
+                // listening & play audio
                 waveOut = new WaveOut();
                 waveProvider = new BufferedWaveProvider(codec.RecordFormat);
                 waveOut.Init(waveProvider);
                 waveOut.Play();
-
-                connected = true;
                 ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
-                ThreadPool.QueueUserWorkItem(this.ListenerThread, threadState);
-
+                ThreadPool.QueueUserWorkItem(this.ListenerAudioThread, threadState);
+                
+                // listening & play webcam 
+                ThreadPool.QueueUserWorkItem(this.ListenerWebcamThread);
             }
             catch (Exception ex)
             {
@@ -209,14 +285,24 @@ namespace Client
 
                         writer.WriteLine("question");
                         string numberQuestion = reader.ReadLine();
-                        groupBox_question.Text = string.Format("Câu hỏi: số {0}", int.Parse(numberQuestion));
+                        groupBox_webcam.Text = string.Format("Streaner - Câu hỏi: số {0}", int.Parse(numberQuestion));
 
                         received = reader.ReadLine();
                         parseQuestion(received);
 
+                        // markup UI
                         answer_A.Enabled = true;
                         answer_B.Enabled = true;
                         answer_C.Enabled = true;
+
+                        answer_A.BackColor = Color.Honeydew;
+                        answer_B.BackColor = Color.Honeydew;
+                        answer_C.BackColor = Color.Honeydew;
+
+                        txt_question.Location = new Point(31, 334);
+                        answer_A.Location = new Point(165, 384);
+                        answer_B.Location = new Point(165, 420);
+                        answer_C.Location = new Point(165, 456);
                     }
 
                    while (true)
@@ -240,15 +326,26 @@ namespace Client
                             case "new question":
                                 // id
                                 string numberQuestion = reader.ReadLine();
-                                groupBox_question.Text = string.Format("Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
+                                groupBox_webcam.Text = string.Format("Streamer - Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
 
                                 //question 
                                 received = reader.ReadLine();
                                 parseQuestion(received);
 
+                                
+                                // Markup UI
                                 answer_A.Enabled = true;
                                 answer_B.Enabled = true;
                                 answer_C.Enabled = true;
+
+                                answer_A.BackColor = Color.Honeydew;
+                                answer_B.BackColor = Color.Honeydew;
+                                answer_C.BackColor = Color.Honeydew;
+
+                                txt_question.Location = new Point(31, 334);
+                                answer_A.Location = new Point(165, 384);
+                                answer_B.Location = new Point(165, 420);
+                                answer_C.Location = new Point(165, 456);
                                 break;
 
                             case "correct":
