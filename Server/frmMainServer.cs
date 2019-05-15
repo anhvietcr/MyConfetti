@@ -57,7 +57,7 @@ namespace Server
         private string _jsonQuestion { get; set; }          = string.Empty;
         private string _correctAnswer { get; set; }         = string.Empty;
         private static bool _isNewQuestion { get; set; }    = false;
-
+        //volatile : Biến volatile thì thread nào cũng xử dụng dc
         private volatile NetworkStream streamer = null;
         private volatile StreamReader reader = null;
         private volatile StreamWriter writer = null;
@@ -328,7 +328,7 @@ namespace Server
                 comboBoxWebcams.SelectedIndex = 0;
             } else
             {
-                comboBoxWebcams.Items.Add("No Webcam detect");
+                //comboBoxWebcams.Items.Add("No Webcam detect");
             }
         }
 
@@ -389,9 +389,9 @@ namespace Server
         public void StartServer(string ip, int port)
         {
             // Recoding Audio
-            waveIn = new WaveIn();
-            int inputDeviceNumber = comboBoxInputDevices.SelectedIndex;
-            this.codec = ((CodecComboItem)comboBoxCodecs.SelectedItem).Codec;
+            waveIn = new WaveIn();//Tạo object để làm việc với âm thanh
+            int inputDeviceNumber = comboBoxInputDevices.SelectedIndex;//Lấy số index của devices được chọn
+            this.codec = ((CodecComboItem)comboBoxCodecs.SelectedItem).Codec;//Chứa chuẩn âm thanh ( đưa âm thanh về byte)
             waveIn.BufferMilliseconds = 50;
             waveIn.DeviceNumber = inputDeviceNumber;
             waveIn.WaveFormat = codec.RecordFormat;
@@ -414,23 +414,27 @@ namespace Server
             // Open TCP server for question, create new thread for non-block UI 
             Thread mainThread = new Thread(() =>
             {
-                IPAddress ipAddress = IPAddress.Parse(ip);
+                IPAddress ipAddress = IPAddress.Parse(ip);//Vì tcp chỉ nhận IPAddress nên phải parse ip về IPaddress
                 server = new TcpListener(ipAddress, port);
                 server.Start();
                 connected = true;
                 Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
 
                 // Open Tcp for Webcam streaming
-                tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
-                tcpWebcamServer.Start();
-                webcamConnected = true;
-                Console.WriteLine("Opened UDP for Webcam at broadcast {0}:{1}", ip, port + 1);
+                if(comboBoxWebcams.Items.Count >=1)
+                {
+                    tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
+                    tcpWebcamServer.Start();
+                    webcamConnected = true;
+                    Console.WriteLine("Opened UDP for Webcam at broadcast {0}:{1}", ip, port + 1);
+                }
+                
 
                 // Listen from client
                 // open a new Thread if a Client connect
-                while (_numberConnecting < MAX_CONNECT)
+                while (_numberConnecting < MAX_CONNECT)//Số connecting hiện tại <100
                 {
-                    Socket acceptSocket = server.AcceptSocket();
+                    Socket acceptSocket = server.AcceptSocket();//Tạo ra 1 socket để làm việc với client
                     webcamSocket = tcpWebcamServer.AcceptSocket();
 
                     // Add all socket connected to control
@@ -445,6 +449,7 @@ namespace Server
                         break;
                     }
                     // ready for communications
+                    //Khi 1 client xác nhận connected thì tạo ra 1 luồng cho nó
                     if (acceptSocket.Connected)
                     {
                         Thread thread = new Thread((client) =>
@@ -467,7 +472,6 @@ namespace Server
         {
             // okay, a client was connect
             // receive data from client for valid
-            int questionID = 1;
             string answer = string.Empty;
             string msg = string.Empty;
             string idUser = string.Empty;
@@ -476,8 +480,8 @@ namespace Server
             {
                 // read, write from client using stream, over use bytes[]
                  streamer = new NetworkStream(client);
-                 reader = new StreamReader(streamer);
-                 writer = new StreamWriter(streamer);
+                 reader = new StreamReader(streamer);//Kiểu streamreader : để server nhận đọc dữ liệu của client
+                 writer = new StreamWriter(streamer);//Ghi dl
 
                 // should flush buffer stream auto 
                 writer.AutoFlush = true;
