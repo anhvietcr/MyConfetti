@@ -513,7 +513,7 @@ namespace Server
                             Console.WriteLine("{0} answer {1}", idUser, answer);
 
                             // check awnser
-                            if (CheckAwnserForQuestion(answer, questionID))
+                            if (CheckAwnserForQuestion(answer))
                             {
                                 writer.WriteLine("correct");
                                 writer.WriteLine("Bạn trả lời đúng\n");
@@ -557,7 +557,7 @@ namespace Server
             client.Close();
         }
 
-        private bool CheckAwnserForQuestion(string answer, int questionID)
+        private bool CheckAwnserForQuestion(string answer)
         {
             if (answer == this._correctAnswer)
                 return true;
