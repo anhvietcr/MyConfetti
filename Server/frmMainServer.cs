@@ -38,7 +38,7 @@ using AForge.Video.DirectShow;
 */
 
 
-namespace Server
+namespace Server            
 {
     public partial class frm_server : Form
     {
@@ -57,11 +57,12 @@ namespace Server
         private string _jsonQuestion { get; set; }          = string.Empty;
         private string _correctAnswer { get; set; }         = string.Empty;
         private static bool _isNewQuestion { get; set; }    = false;
-        //volatile : Biến volatile thì thread nào cũng xử dụng dc
-        private volatile NetworkStream streamer = null;
-        private volatile StreamReader reader = null;
-        private volatile StreamWriter writer = null;
 
+        private static List<int> list_id = new List<int>();
+
+        private static int cost;
+        //volatile : Biến volatile thì thread nào cũng xử dụng dc
+       
         // Audio record Properties
         private WaveIn waveIn;
         private UdpClient udpAudioSender;
@@ -214,6 +215,36 @@ namespace Server
 
             if (_numberQuestion >= _questions.Length)
             {
+                float totalCost;
+                int dem = 0;
+                if (!float.TryParse(txt_cost.Text, out totalCost)){
+                    totalCost = 3000;
+                }
+                string winner = "Người chiến thắng có id là :";
+                for (int i = 0; i < list_id.Count; i++)
+                {
+                    if (list_id[i] == 10)
+                    {
+                        dem++;
+                        winner += "  " + (i + 1).ToString();
+                    }
+                }
+                float cost = totalCost / dem;
+                string winner_Cost = String.Format("$ ({0})", cost);
+                MessageBox.Show(winner, "Thông báo!");
+                Console.WriteLine(winner);
+                // message to all client for start game
+
+                foreach (Socket client in _listSocket)
+                {
+                    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                    {
+                        writer.WriteLine("show winner");
+                        writer.WriteLine(winner);
+                        writer.WriteLine(winner_Cost);
+                    }
+                }
+               
                 MessageBox.Show("Hết câu hỏi !");
                 _numberQuestion = 0;
                 btn_play.Enabled = true;
@@ -310,7 +341,7 @@ namespace Server
         {
             byte[] encoded = codec.Encode(e.Buffer, 0, e.BytesRecorded);
             udpAudioSender.Send(encoded, encoded.Length);
-            Console.WriteLine("Send audio size {0}", encoded.Length);
+           // Console.WriteLine("Send audio size {0}", encoded.Length);
         }
         #endregion
 
@@ -358,7 +389,7 @@ namespace Server
                     {
                         client.Send(bStream, bStream.Length, SocketFlags.None);
                     }
-                    Console.WriteLine("send webcam size {0}", bStream.Length);
+                   // Console.WriteLine("send webcam size {0}", bStream.Length);
                 }
                 catch (SocketException ex)
                 {
@@ -472,9 +503,12 @@ namespace Server
         {
             // okay, a client was connect
             // receive data from client for valid
-            string answer = string.Empty;
-            string msg = string.Empty;
-            string idUser = string.Empty;
+             string answer = string.Empty;
+             string msg = string.Empty;
+             string idUser = string.Empty;
+             NetworkStream streamer = null;
+             StreamReader reader = null;
+             StreamWriter writer = null;
 
             try
             {
@@ -498,6 +532,7 @@ namespace Server
                             // send to client's ID, state game
                             writer.WriteLine(_numberConnecting);
                             writer.WriteLine(_isPlay);
+                            list_id.Add(0);
                             break;
 
                         case "question":
@@ -506,7 +541,7 @@ namespace Server
                             break;
 
                         case "answer":
-                            Console.WriteLine("get answer");
+                            Console.WriteLine("==============>");
                             idUser = reader.ReadLine();
                             answer = reader.ReadLine();
 
@@ -516,12 +551,16 @@ namespace Server
                             if (CheckAwnserForQuestion(answer))
                             {
                                 writer.WriteLine("correct");
-                                writer.WriteLine("Bạn trả lời đúng\n");
+                                writer.WriteLine(this._correctAnswer);
+                                Console.WriteLine(this._correctAnswer);
+                                int i = int.Parse(idUser);
+                                list_id[i - 1]++;
                             }
                             else
                             {
                                 writer.WriteLine("incorrect");
-                                writer.WriteLine("Bạn trả lời sai\n");
+                                 writer.WriteLine(this._correctAnswer);
+                                Console.WriteLine(this._correctAnswer);
                             }
                             break;
                         default:
@@ -577,6 +616,25 @@ namespace Server
                     writer.WriteLine("new question");
                     writer.WriteLine(numberQuestion);
                     writer.WriteLine(@jsonQuestion);
+                }
+            }
+        }
+
+        private void btnShowAnswer_Click(object sender, EventArgs e)
+        {
+            showAnswer();
+        }
+        private void showAnswer()
+        {
+            // valid running in game loop
+            if (!_isPlay) return;
+
+            // message to all client for start game
+            foreach (Socket client in _listSocket)
+            {
+                using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                {
+                    writer.WriteLine("show answer");
                 }
             }
         }

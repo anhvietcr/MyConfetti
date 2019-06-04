@@ -26,13 +26,13 @@ namespace Client
         #region GLOBAL
 
         private TcpClient client                        = null;
-        private StreamWriter writer                     = null;
-        private StreamReader reader                     = null;
+        private StreamWriter writer = null;
+        private StreamReader reader = null;
         private string id                               = string.Empty;
-        private static int score                        = 0;
-        private static string answer                    = null;
-        private static bool isDisconnect                = false;
-
+        private  int score                        = 0;
+        private  string answer                    = null;
+        private  bool isDisconnect                = false;
+       private  bool flag = false;
         // Audio record Properties
         private UdpClient udpAudioListener;
         private IWavePlayer waveOut;
@@ -60,7 +60,7 @@ namespace Client
         {
             string ip = null;
             int port = 0;
-
+         
             // valid IP address and PORT
             if (string.IsNullOrEmpty(txt_ip.Text)) return;
             if (string.IsNullOrEmpty(txt_port.Text)) return;
@@ -84,11 +84,12 @@ namespace Client
 
         private void btn_answer_Clicked(object sender, EventArgs e)
         {
+            flag = true;
             if (client == null) return;
-
+          //  timer1.Enabled = true;
             // get answer A, B, C from user
             answer = (sender as Button).Tag.ToString();
-
+            Console.WriteLine("Client answer {0}", answer);
             answer_A.Enabled = false;
             answer_B.Enabled = false;
             answer_C.Enabled = false;
@@ -96,11 +97,13 @@ namespace Client
             answer_A.BackColor = Color.Gray;
             answer_B.BackColor = Color.Gray;
             answer_C.BackColor = Color.Gray;
-            (sender as Button).BackColor = Color.Green;
+            (sender as Button).BackColor = Color.Blue;
 
             writer.WriteLine("answer");
             writer.WriteLine(id);
             writer.WriteLine(answer);
+
+            Console.WriteLine("answer");
         }
 
         private void btn_close_Click(object sender, EventArgs e)
@@ -133,7 +136,7 @@ namespace Client
                     buffer = udpAudioListener.Receive(ref endPoint);
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
-                    Console.WriteLine("audio receive size {0}", decoded.Length);
+                   // Console.WriteLine("audio receive size {0}", decoded.Length);
                 }
             }
             catch (SocketException ex)
@@ -155,7 +158,7 @@ namespace Client
 
                     byte[] data = Receive(ns);
                     byte[] outputBuffer = new byte[data.Length];
-                    Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
+                   // Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
 
                     // add to picture streamer
                     pictureBoxStreamer.Image = ByteToImage(data);
@@ -255,10 +258,12 @@ namespace Client
 
             Thread mainThread = new Thread(() =>
             {
-                string msg = string.Empty;
+               
                 string state = string.Empty;
-                string received = string.Empty;
-
+                 string msg = string.Empty;//Biến lưu chủ đề trả từ server về
+                 string received = string.Empty;//Biến lưu kết quả đúng sai
+                 //StreamWriter writer = null;
+                 //StreamReader reader = null;
                 try
                 {
                     // connect
@@ -277,7 +282,9 @@ namespace Client
                     id = reader.ReadLine();
                     state = reader.ReadLine();
                     Console.WriteLine("My received id: {0}, game play? {1}", id, state);
-
+                    txt_Id.Text = id;
+                    string text = String.Format("Bạn là User_{0}", id);
+                    MessageBox.Show(text, "Thông Báo!");
                     // get current question 
                     if (state.Contains("True"))
                     {
@@ -289,7 +296,7 @@ namespace Client
 
                         received = reader.ReadLine();
                         parseQuestion(received);
-
+                        
                         // markup UI
                         answer_A.Enabled = true;
                         answer_B.Enabled = true;
@@ -324,6 +331,7 @@ namespace Client
                                 break;
 
                             case "new question":
+                               
                                 // id
                                 string numberQuestion = reader.ReadLine();
                                 groupBox_webcam.Text = string.Format("Streamer - Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
@@ -347,20 +355,64 @@ namespace Client
                                 answer_B.Location = new Point(165, 420);
                                 answer_C.Location = new Point(165, 456);
                                 break;
-
+                            
                             case "correct":
                                 received = reader.ReadLine();
-                                txt_noti.Text = "Kết quả: " + received;
+                                Console.WriteLine(received);
+                              
                                 score++;
-                                txt_score.Text = score.ToString();
+                               
                                 break;
 
                             case "incorrect":
                                 received = reader.ReadLine();
-                                txt_noti.Text = "Kết quả: " + received;
-                                txt_score.Text = score.ToString();
+                                Console.WriteLine(received);
                                 break;
+                            case "show answer":
+                                
+                                if (received == "A")
+                                {
+                                    answer_A.BackColor = Color.Green;
+                                    if (answer == "A")
+                                    {
+                                        txt_score.Text = score.ToString();
+                                    }
+                                    
+                                }
+                                else if (received == "B")
+                                {
+                                    answer_B.BackColor = Color.Green;
+                                    if (answer == "B")
+                                    {
+                                        txt_score.Text = score.ToString();
+                                       
+                                    }
+                                  
+                                }
+                                else if (received == "C")
+                                {
+                                    answer_C.BackColor = Color.Green;
+                                    if (answer == "C")
+                                    {
+                                        txt_score.Text = score.ToString();
+                                       
+                                    }
+                                  
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Dont A, B, C");
+                                }
 
+                                answer = "";
+                                break;
+                            case "show winner":
+                                received = reader.ReadLine();
+                                string cost = reader.ReadLine();
+                                Console.WriteLine(received);
+                                string s = received + "\n" + cost;
+                                MessageBox.Show(s);
+                                break;
                             default: break;
                         }
                     }
@@ -385,9 +437,15 @@ namespace Client
         {
             try
             {
+               //Tach luong
+
+                this.Invoke(new Action(() =>
+                {
+                    timer1.Enabled = true;
+                }));
+
                 Console.WriteLine(jsonQuestion);
                 dynamic data = JObject.Parse(jsonQuestion);
-
                 // update to GUI
                 txt_question.Text = data.Question;
                 answer_A.Text = data.A;
@@ -399,6 +457,36 @@ namespace Client
                 MessageBox.Show(ex.Message);
                 throw;
             }
+        }
+        int seconds = 10;
+        private void time1_Tick(object sender, EventArgs e) 
+        {
+            if (seconds <= 0) {
+                timer1.Enabled = false;
+                seconds = 10;
+                lbCountDown.Text = "10";
+                answer_A.Enabled = false;
+                answer_B.Enabled = false;
+                answer_C.Enabled = false;
+
+                if (!flag)
+                {
+                    writer.WriteLine("answer");
+                    writer.WriteLine(id);
+                    writer.WriteLine("D");
+
+                    Console.WriteLine("answer o timer");
+                }
+                flag = false;
+            }
+            Console.WriteLine("timer");
+            lbCountDown.Text = seconds.ToString();
+            seconds--;
+        }
+        private void timerEnable()
+        {
+            timer1.Enabled = true;
+          
         }
     }
 }

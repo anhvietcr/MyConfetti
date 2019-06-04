@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.txt_port = new System.Windows.Forms.TextBox();
             this.btn_connect = new System.Windows.Forms.Button();
             this.txt_ip = new System.Windows.Forms.TextBox();
@@ -35,14 +36,16 @@
             this.answer_C = new System.Windows.Forms.Button();
             this.answer_B = new System.Windows.Forms.Button();
             this.txt_question = new System.Windows.Forms.Label();
-            this.txt_noti = new System.Windows.Forms.Label();
+            this.txt_Id = new System.Windows.Forms.Label();
             this.btn_close = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
             this.txt_score = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
             this.groupBox_webcam = new System.Windows.Forms.GroupBox();
+            this.lbCountDown = new System.Windows.Forms.Label();
             this.pictureBoxStreamer = new System.Windows.Forms.PictureBox();
             this.txt_status = new System.Windows.Forms.Label();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.groupBox_webcam.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).BeginInit();
             this.SuspendLayout();
@@ -130,15 +133,15 @@
             this.txt_question.TabIndex = 9;
             this.txt_question.Text = "...";
             // 
-            // txt_noti
+            // txt_Id
             // 
-            this.txt_noti.AutoSize = true;
-            this.txt_noti.Font = new System.Drawing.Font("Courier New", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_noti.Location = new System.Drawing.Point(12, 5);
-            this.txt_noti.Name = "txt_noti";
-            this.txt_noti.Size = new System.Drawing.Size(43, 22);
-            this.txt_noti.TabIndex = 10;
-            this.txt_noti.Text = "...";
+            this.txt_Id.AutoSize = true;
+            this.txt_Id.Font = new System.Drawing.Font("Courier New", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txt_Id.Location = new System.Drawing.Point(12, 5);
+            this.txt_Id.Name = "txt_Id";
+            this.txt_Id.Size = new System.Drawing.Size(43, 22);
+            this.txt_Id.TabIndex = 10;
+            this.txt_Id.Text = "...";
             // 
             // btn_close
             // 
@@ -183,6 +186,7 @@
             // 
             // groupBox_webcam
             // 
+            this.groupBox_webcam.Controls.Add(this.lbCountDown);
             this.groupBox_webcam.Controls.Add(this.txt_question);
             this.groupBox_webcam.Controls.Add(this.answer_C);
             this.groupBox_webcam.Controls.Add(this.answer_B);
@@ -195,6 +199,17 @@
             this.groupBox_webcam.TabIndex = 15;
             this.groupBox_webcam.TabStop = false;
             this.groupBox_webcam.Text = "Streamer";
+            // 
+            // lbCountDown
+            // 
+            this.lbCountDown.AutoSize = true;
+            this.lbCountDown.Font = new System.Drawing.Font("Courier New", 30F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbCountDown.ForeColor = System.Drawing.SystemColors.ControlText;
+            this.lbCountDown.Location = new System.Drawing.Point(542, 393);
+            this.lbCountDown.Name = "lbCountDown";
+            this.lbCountDown.Size = new System.Drawing.Size(68, 46);
+            this.lbCountDown.TabIndex = 13;
+            this.lbCountDown.Text = "10";
             // 
             // pictureBoxStreamer
             // 
@@ -215,6 +230,11 @@
             this.txt_status.TabIndex = 16;
             this.txt_status.Text = "Not connect";
             // 
+            // timer1
+            // 
+            this.timer1.Interval = 1000;
+            this.timer1.Tick += new System.EventHandler(this.time1_Tick);
+            // 
             // frmMainClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -226,7 +246,7 @@
             this.Controls.Add(this.txt_score);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.btn_close);
-            this.Controls.Add(this.txt_noti);
+            this.Controls.Add(this.txt_Id);
             this.Controls.Add(this.txt_port);
             this.Controls.Add(this.btn_connect);
             this.Controls.Add(this.txt_ip);
@@ -248,7 +268,7 @@
         private System.Windows.Forms.TextBox txt_ip;
         private System.Windows.Forms.Button answer_A;
         private System.Windows.Forms.Label txt_question;
-        private System.Windows.Forms.Label txt_noti;
+        private System.Windows.Forms.Label txt_Id;
         private System.Windows.Forms.Button btn_close;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label txt_score;
@@ -258,6 +278,8 @@
         private System.Windows.Forms.Button answer_B;
         private System.Windows.Forms.Label txt_status;
         private System.Windows.Forms.PictureBox pictureBoxStreamer;
+        private System.Windows.Forms.Label lbCountDown;
+        public System.Windows.Forms.Timer timer1;
     }
 }
 
