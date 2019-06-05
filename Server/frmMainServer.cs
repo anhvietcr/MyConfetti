@@ -43,7 +43,6 @@ namespace Server
     public partial class frm_server : Form
     {
         #region GLOBAL
-        private static int tick                             = 0;
         private Thread mainThread                           = null;
         private string[] _questions                         = null;
         private const int MAX_CONNECT                       = 100;
@@ -161,12 +160,24 @@ namespace Server
                 server.Stop();
                 waveIn.Dispose();
 
-                //waveOut.Stop();
-                //udpAudioSender.Close();
-                //udpListener.Close();
-                //waveOut.Dispose();
+                // audio
+                this.codec.Dispose();
+                udpAudioSender.Close();
 
-                this.codec.Dispose(); // a bit naughty but we have designed the codecs to support multiple calls to Dispose, recreating their resources if Encode/Decode called again
+                // question
+                foreach (Socket client in _listSocket)
+                {
+                    client.Close();
+                }
+
+                // webcam
+                tcpWebcamServer.Server.Close();
+                foreach (Socket client in _listSocketWebcam)
+                {
+                    client.Close();
+                }
+
+                server.Server.Close();
             }
         }
 
@@ -370,14 +381,21 @@ namespace Server
 
         void showMyCam(object sender, AForge.Video.NewFrameEventArgs eventArgs)
         {
-            Bitmap bit = (Bitmap)eventArgs.Frame.Clone();
-            pictureBoxStreamer.Image = bit;
-
-            // Detect cross threading
-            this.Invoke((MethodInvoker)delegate
+            try
             {
-                SendImageToClients(bit);
-            });
+                // Detect cross threading
+                this.Invoke((MethodInvoker)delegate
+                {
+                    Bitmap bit = (Bitmap)eventArgs.Frame.Clone();
+                    pictureBoxStreamer.Image = bit;
+
+                    SendImageToClients(bit);
+                });
+            } 
+            catch (Exception ex)
+            {
+                Console.WriteLine("Webcam was close !!!");
+            }
         }
 
         public void SendImageToClients(Image img = null)
@@ -401,7 +419,7 @@ namespace Server
                 }
                 catch (SocketException ex)
                 {
-                    Console.WriteLine("Webcam was close !!!");
+                    Console.WriteLine("Client was disconnected");
                 }
                 catch (Exception ex)
                 {
@@ -435,74 +453,81 @@ namespace Server
             waveIn.DataAvailable += waveIn_DataAvailable;
             waveIn.StartRecording();
             
-            // Open UDP connect for Audio sending
-            udpAudioSender = new UdpClient();
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Broadcast, port);
-            udpAudioSender.Connect(endPoint);
-            Console.WriteLine("Opened UDP for Audio at broadcast {0}:{1}", IPAddress.Broadcast, port);
-
             // Start Webcam 
             cam = new VideoCaptureDevice(webcam[comboBoxWebcams.SelectedIndex].MonikerString);
             cam.VideoResolution = cam.VideoCapabilities[0]; // 640 x 480
             cam.NewFrame += new AForge.Video.NewFrameEventHandler(showMyCam);
             cam.Start();
 
-            
+            // Open UDP connect for Audio sending
+            udpAudioSender = new UdpClient();
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Broadcast, port);
+            udpAudioSender.Connect(endPoint);
+            Console.WriteLine("Opened UDP for Audio at broadcast {0}:{1}", IPAddress.Broadcast, port);
+
             // Open TCP server for question, create new thread for non-block UI 
             Thread mainThread = new Thread(() =>
             {
-                IPAddress ipAddress = IPAddress.Parse(ip);//Vì tcp chỉ nhận IPAddress nên phải parse ip về IPaddress
-                server = new TcpListener(ipAddress, port);
-                server.Start();
-                connected = true;
-                Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
-
-                // Open Tcp for Webcam streaming
-                if(comboBoxWebcams.Items.Count >=1)
+                try
                 {
-                    tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
-                    tcpWebcamServer.Start();
-                    webcamConnected = true;
-                    Console.WriteLine("Opened TCP for Webcam at broadcast {0}:{1}", ip, port + 1);
-                }
-                
+                    IPAddress ipAddress = IPAddress.Parse(ip);//Vì tcp chỉ nhận IPAddress nên phải parse ip về IPaddress
+                    server = new TcpListener(ipAddress, port);
+                    server.Start();
+                    connected = true;
+                    _isDisconnect = false;
+                    Console.WriteLine("Opened TCP server for Question at {0}:{1}", ip, port);
 
-                // Listen from client
-                // open a new Thread if a Client connect
-                while (_numberConnecting < MAX_CONNECT)//Số connecting hiện tại <100
-                {
-                    Socket acceptSocket = server.AcceptSocket();//Tạo ra 1 socket để làm việc với client
-                    webcamSocket = tcpWebcamServer.AcceptSocket();
-
-                    // Add all socket connected to control
-                    _listSocketWebcam.Add(webcamSocket);
-                    _listSocket.Add(acceptSocket);
-
-                    _numberConnecting++;
-
-                    this.Invoke(new Action(() =>
+                    // Open Tcp for Webcam streaming
+                    if (comboBoxWebcams.Items.Count >= 1)
                     {
-                        txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
-                    }));
-
-                    if (_isDisconnect)
-                    {
-                        break;
+                        tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
+                        tcpWebcamServer.Start();
+                        webcamConnected = true;
+                        Console.WriteLine("Opened TCP for Webcam at broadcast {0}:{1}", ip, port + 1);
                     }
-                    // ready for communications
-                    //Khi 1 client xác nhận connected thì tạo ra 1 luồng cho nó
-                    if (acceptSocket.Connected)
+
+                    // Listen from client
+                    // open a new Thread if a Client connect
+                    while (_numberConnecting < MAX_CONNECT)//Số connecting hiện tại <100
                     {
-                        Thread thread = new Thread((client) =>
+                        Socket acceptSocket = server.AcceptSocket();//Tạo ra 1 socket để làm việc với client
+                        webcamSocket = tcpWebcamServer.AcceptSocket();
+
+                        // Add all socket connected to control
+                        _listSocketWebcam.Add(webcamSocket);
+                        _listSocket.Add(acceptSocket);
+
+                        _numberConnecting++;
+
+                        this.Invoke(new Action(() =>
                         {
-                            ConnectClient((Socket)client);
-                        });
-                        thread.Start(acceptSocket);
+                            txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
+                        }));
+
+                        if (_isDisconnect)
+                        {
+                            break;
+                        }
+                        // ready for communications
+                        //Khi 1 client xác nhận connected thì tạo ra 1 luồng cho nó
+                        if (acceptSocket.Connected)
+                        {
+                            Thread thread = new Thread((client) =>
+                            {
+                                ConnectClient((Socket)client);
+                            });
+                            thread.Start(acceptSocket);
+                        }
                     }
+                    server.Server.Close();
+                    _isDisconnect = false;
+                    Console.WriteLine("Server was closed from main");
                 }
-                server.Server.Close();
-                _isDisconnect = false;
-                Console.WriteLine("Server was closed from main");
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Server was close");
+                    return;
+                }
 
             });
             mainThread.Start();
@@ -598,23 +623,31 @@ namespace Server
             }
             catch(SocketException ex)
             {
-                Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+                if (client.Connected)
+                {
+                    Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+                if (client.Connected)
+                {
+                    Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+                }
             }
             // Client was disconnect, should close.
             //Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
-
-            foreach (Socket socketWebcam in _listSocketWebcam)
+            if (client.Connected)
             {
-                if (socketWebcam.RemoteEndPoint == client.RemoteEndPoint)
+                foreach (Socket socketWebcam in _listSocketWebcam)
                 {
-                    socketWebcam.Close();
+                    if (socketWebcam.RemoteEndPoint == client.RemoteEndPoint)
+                    {
+                        socketWebcam.Close();
+                    }
                 }
+                client.Close();
             }
-            client.Close();
         }
 
         private bool CheckAwnserForQuestion(string answer)

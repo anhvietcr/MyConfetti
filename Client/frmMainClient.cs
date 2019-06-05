@@ -26,13 +26,14 @@ namespace Client
         #region GLOBAL
 
         private TcpClient client                        = null;
-        private StreamWriter writer = null;
-        private StreamReader reader = null;
+        private StreamWriter writer                     = null;
+        private StreamReader reader                     = null;
         private string id                               = string.Empty;
-        private  int score                        = 0;
-        private  string answer                    = null;
-        private  bool isDisconnect                = false;
-       private  bool flag = false;
+        private  int score                              = 0;
+        private  string answer                          = null;
+        private  bool isDisconnect                      = false;
+        private  bool flag = false;
+
         // Audio record Properties
         private UdpClient udpAudioListener;
         private IWavePlayer waveOut;
@@ -41,7 +42,6 @@ namespace Client
         private volatile bool connected;
 
         // Webcam
-        private UdpClient udpWebcamListener;
         private TcpClient TcpWebcamClient;
         #endregion
 
@@ -53,6 +53,8 @@ namespace Client
             answer_A.Location = new Point(-165, -384);
             answer_B.Location = new Point(-165, -420);
             answer_C.Location = new Point(-165, -456);
+            lbCountDown.Location = new Point(-542, -393);
+            pictureBoxStreamer.Image = Image.FromFile("404.jpg");
         }
 
         #region Buttons Event
@@ -86,7 +88,7 @@ namespace Client
         {
             flag = true;
             if (client == null) return;
-          //  timer1.Enabled = true;
+
             // get answer A, B, C from user
             answer = (sender as Button).Tag.ToString();
             Console.WriteLine("Client answer {0}", answer);
@@ -113,6 +115,11 @@ namespace Client
             btn_close.Enabled = false;
 
             isDisconnect = true;
+
+            client.Close();
+            TcpWebcamClient.Close();
+            udpAudioListener.Close();
+            seconds = 0;
         }
         #endregion
 
@@ -141,8 +148,9 @@ namespace Client
             }
             catch (SocketException ex)
             {
-                Console.WriteLine(ex.Message);
-                throw;
+                Console.WriteLine("Disconnect audio from server");
+                udpAudioListener.Close();
+                //throw;
             }
         }
         #endregion
@@ -150,24 +158,20 @@ namespace Client
         #region Webcam
         private void ListenerWebcamThread(object sender)
         {
-            try
+            while (TcpWebcamClient.Connected)
             {
-                while (connected)
+                NetworkStream ns = TcpWebcamClient.GetStream();
+
+                byte[] data = Receive(ns);
+
+                if (data == null || data.Length <= 0)
                 {
-                    NetworkStream ns = TcpWebcamClient.GetStream();
-
-                    byte[] data = Receive(ns);
-                    byte[] outputBuffer = new byte[data.Length];
-                    Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
-
-                    // add to picture streamer
-                    pictureBoxStreamer.Image = ByteToImage(data);
+                    break;
                 }
-            }
-            catch (SocketException ex)
-            {
-                Console.WriteLine(ex.Message);
-                throw;
+                Console.WriteLine("webcam receive size {0}", data.Length);
+
+                // add to picture streamer
+                pictureBoxStreamer.Image = ByteToImage(data);
             }
         }
         private byte[] Receive(NetworkStream netstr)
@@ -189,19 +193,26 @@ namespace Client
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-
+                Console.WriteLine("Cannot receive webcam from server");
+                TcpWebcamClient.Close();
                 return null;
             }
 
         }
         public Image ByteToImage(byte[] byteArrayIn)
         {
+            try
+            {
+                ImageConverter converter = new ImageConverter();
+                Image img = (Image)converter.ConvertFrom(byteArrayIn);
 
-            System.Drawing.ImageConverter converter = new System.Drawing.ImageConverter();
-            Image img = (Image)converter.ConvertFrom(byteArrayIn);
-
-            return img;
+                return img;
+            }
+            catch (Exception ex)
+            {
+                Image notfound = Image.FromFile("404.jpg");
+                return notfound;
+            }
         }
         #endregion
 
@@ -224,6 +235,11 @@ namespace Client
 
             try
             {
+                // Webcam Receive
+                TcpWebcamClient = new TcpClient();
+                TcpWebcamClient.Connect(ip, port + 1);
+                Console.WriteLine("Connect TCP for Webcam at {0}:{1}", ip, port + 1);
+
                 // Audio Receive
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, port);
                 udpAudioListener = new UdpClient();
@@ -231,12 +247,10 @@ namespace Client
                 udpAudioListener.Client.Bind(endPoint);
                 Console.WriteLine("Connect UDP for Audio at {0}:{1}", endPoint.Address, endPoint.Port);
 
-                // Webcam Receive
-                TcpWebcamClient = new TcpClient();
-                TcpWebcamClient.Connect(ip, port + 1);
-                Console.WriteLine("Connect UDP for Webcam at {0}:{1}", ip, port + 1);
-
                 connected = true;
+                
+                // listening & play webcam 
+                ThreadPool.QueueUserWorkItem(this.ListenerWebcamThread);
 
                 // listening & play audio
                 waveOut = new WaveOut();
@@ -245,21 +259,20 @@ namespace Client
                 waveOut.Play();
                 ListenerThreadState threadState = new ListenerThreadState() { Codec = codec, EndPoint = endPoint };
                 ThreadPool.QueueUserWorkItem(this.ListenerAudioThread, threadState);
-                
-                // listening & play webcam 
-                ThreadPool.QueueUserWorkItem(this.ListenerWebcamThread);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                throw;
+                Console.WriteLine("Cannot connect to server. Server closed!");
+                btn_close.Enabled = false;
+                btn_connect.Enabled = true;
+                return;
             }
 
 
             Thread mainThread = new Thread(() =>
             {
                
-                string state = string.Empty;
+                 string state = string.Empty;
                  string msg = string.Empty;//Biến lưu chủ đề trả từ server về
                  string received = string.Empty;//Biến lưu kết quả đúng sai
                  //StreamWriter writer = null;
@@ -273,6 +286,7 @@ namespace Client
                     {
                         txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
                     }));
+                    isDisconnect = false;
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
                     reader = new StreamReader(streamer);
@@ -288,6 +302,7 @@ namespace Client
                     this.Invoke(new Action(() =>
                     {
                         txt_Id.Text = id;
+                        lbCountDown.Location = new Point(542, 393);
                     }));
 
                     string text = String.Format("Bạn là User_{0}", id);
@@ -446,17 +461,26 @@ namespace Client
                         }
                     }
                     streamer.Close();
-                    client.Close();
-                }
-                catch (IOException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    throw;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
-                    throw;
+                    Console.WriteLine("Disconnected from server");
+
+                    this.Invoke(new Action(() =>
+                    {
+                        btn_close.Enabled = false;
+                        btn_connect.Enabled = true;
+
+                        txt_question.Location = new Point(-31, -334);
+                        answer_A.Location = new Point(-165, -384);
+                        answer_B.Location = new Point(-165, -420);
+                        answer_C.Location = new Point(-165, -456);
+
+                        lbCountDown.Location = new Point(-542, -393);
+                        pictureBoxStreamer.Image = Image.FromFile("404.jpg");
+                    }));
+
+                    client.Close();
                 }
             });
             mainThread.Start();
@@ -486,39 +510,43 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
-                throw;
+                MessageBox.Show("Error load question");
+                return;
+                //throw;
             }
         }
         int seconds = 10;
         private void time1_Tick(object sender, EventArgs e) 
         {
-            if (seconds <= 0) {
-                timer1.Enabled = false;
-                seconds = 10;
-                lbCountDown.Text = "10";
-                answer_A.Enabled = false;
-                answer_B.Enabled = false;
-                answer_C.Enabled = false;
-
-                if (!flag)
+            if (client.Connected && TcpWebcamClient.Connected)
+            {
+                if (seconds <= 0)
                 {
-                    writer.WriteLine("answer");
-                    writer.WriteLine(id);
-                    writer.WriteLine("D");
+                    timer1.Enabled = false;
+                    seconds = 10;
+                    lbCountDown.Text = "10";
+                    answer_A.Enabled = false;
+                    answer_B.Enabled = false;
+                    answer_C.Enabled = false;
 
-                    Console.WriteLine("answer o timer");
+                    if (!flag)
+                    {
+                        writer.WriteLine("answer");
+                        writer.WriteLine(id);
+                        writer.WriteLine("D");
+
+                        Console.WriteLine("answer o timer");
+                    }
+                    flag = false;
                 }
-                flag = false;
+                Console.WriteLine("timer");
+                lbCountDown.Text = seconds.ToString();
+                seconds--;
             }
-            Console.WriteLine("timer");
-            lbCountDown.Text = seconds.ToString();
-            seconds--;
         }
         private void timerEnable()
         {
             timer1.Enabled = true;
-          
         }
     }
 }
