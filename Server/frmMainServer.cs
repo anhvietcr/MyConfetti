@@ -191,12 +191,14 @@ namespace Server
             // message to all client for start game
             foreach (Socket client in _listSocket)
             {
-                using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                if (client.Connected)
                 {
-                    writer.WriteLine("play");
+                    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                    {
+                        writer.WriteLine("play");
+                    }
                 }
             }
-
         }
 
         private void btnNext_Click(object sender, EventArgs e)
@@ -237,11 +239,14 @@ namespace Server
 
                 foreach (Socket client in _listSocket)
                 {
-                    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                    if (client.Connected)
                     {
-                        writer.WriteLine("show winner");
-                        writer.WriteLine(winner);
-                        writer.WriteLine(winner_Cost);
+                        using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                        {
+                            writer.WriteLine("show winner");
+                            writer.WriteLine(winner);
+                            writer.WriteLine(winner_Cost);
+                        }
                     }
                 }
                
@@ -387,19 +392,20 @@ namespace Server
                     // message to all client
                     foreach (Socket client in _listSocketWebcam)
                     {
-                        client.Send(bStream, bStream.Length, SocketFlags.None);
+                        if (client.Connected)
+                        {
+                            client.Send(bStream, bStream.Length, SocketFlags.None);
+                        }
                     }
                    // Console.WriteLine("send webcam size {0}", bStream.Length);
                 }
                 catch (SocketException ex)
                 {
-                    Console.WriteLine("SocketException: " + ex.Message);
-                    throw;
+                    Console.WriteLine("Webcam was close !!!");
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    throw;
                 }
             }
         }
@@ -457,7 +463,7 @@ namespace Server
                     tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
                     tcpWebcamServer.Start();
                     webcamConnected = true;
-                    Console.WriteLine("Opened UDP for Webcam at broadcast {0}:{1}", ip, port + 1);
+                    Console.WriteLine("Opened TCP for Webcam at broadcast {0}:{1}", ip, port + 1);
                 }
                 
 
@@ -473,7 +479,11 @@ namespace Server
                     _listSocket.Add(acceptSocket);
 
                     _numberConnecting++;
-                    txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
+
+                    this.Invoke(new Action(() =>
+                    {
+                        txt_numberConnect.Text = _numberConnecting.ToString(); // update UI
+                    }));
 
                     if (_isDisconnect)
                     {
@@ -552,7 +562,7 @@ namespace Server
                             {
                                 writer.WriteLine("correct");
                                 writer.WriteLine(this._correctAnswer);
-                                Console.WriteLine(this._correctAnswer);
+                                Console.WriteLine("Correct answer {0}: ", this._correctAnswer);
                                 int i = int.Parse(idUser);
                                 list_id[i - 1]++;
                             }
@@ -560,7 +570,7 @@ namespace Server
                             {
                                 writer.WriteLine("incorrect");
                                  writer.WriteLine(this._correctAnswer);
-                                Console.WriteLine(this._correctAnswer);
+                                Console.WriteLine("Correct answer {0}: ", this._correctAnswer);
                             }
                             break;
                         default:
@@ -586,13 +596,24 @@ namespace Server
             {
                 throw;
             }
+            catch(SocketException ex)
+            {
+                Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+            }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                throw;
+                Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
             }
             // Client was disconnect, should close.
-            Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+            //Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+
+            foreach (Socket socketWebcam in _listSocketWebcam)
+            {
+                if (socketWebcam.RemoteEndPoint == client.RemoteEndPoint)
+                {
+                    socketWebcam.Close();
+                }
+            }
             client.Close();
         }
 
@@ -611,11 +632,14 @@ namespace Server
             // message to all client for start game
             foreach (Socket client in _listSocket)
             {
-                using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                if (client.Connected)
                 {
-                    writer.WriteLine("new question");
-                    writer.WriteLine(numberQuestion);
-                    writer.WriteLine(@jsonQuestion);
+                    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                    {
+                        writer.WriteLine("new question");
+                        writer.WriteLine(numberQuestion);
+                        writer.WriteLine(@jsonQuestion);
+                    }
                 }
             }
         }
@@ -632,9 +656,12 @@ namespace Server
             // message to all client for start game
             foreach (Socket client in _listSocket)
             {
-                using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                if (client.Connected)
                 {
-                    writer.WriteLine("show answer");
+                    using (StreamWriter writer = new StreamWriter(new NetworkStream(client)))
+                    {
+                        writer.WriteLine("show answer");
+                    }
                 }
             }
         }

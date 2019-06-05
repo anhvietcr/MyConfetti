@@ -136,7 +136,7 @@ namespace Client
                     buffer = udpAudioListener.Receive(ref endPoint);
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
-                   // Console.WriteLine("audio receive size {0}", decoded.Length);
+                    Console.WriteLine("audio receive size {0}", decoded.Length);
                 }
             }
             catch (SocketException ex)
@@ -158,7 +158,7 @@ namespace Client
 
                     byte[] data = Receive(ns);
                     byte[] outputBuffer = new byte[data.Length];
-                   // Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
+                    Console.WriteLine("webcam receive size {0}", outputBuffer.Length);
 
                     // add to picture streamer
                     pictureBoxStreamer.Image = ByteToImage(data);
@@ -269,8 +269,10 @@ namespace Client
                     // connect
                     client = new TcpClient();
                     client.Connect(IPAddress.Parse(ip), port);
-                    txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
-
+                    this.Invoke(new Action(() =>
+                    {
+                        txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
+                    }));
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
                     reader = new StreamReader(streamer);
@@ -282,7 +284,12 @@ namespace Client
                     id = reader.ReadLine();
                     state = reader.ReadLine();
                     Console.WriteLine("My received id: {0}, game play? {1}", id, state);
-                    txt_Id.Text = id;
+                    
+                    this.Invoke(new Action(() =>
+                    {
+                        txt_Id.Text = id;
+                    }));
+
                     string text = String.Format("Bạn là User_{0}", id);
                     MessageBox.Show(text, "Thông Báo!");
                     // get current question 
@@ -292,24 +299,32 @@ namespace Client
 
                         writer.WriteLine("question");
                         string numberQuestion = reader.ReadLine();
-                        groupBox_webcam.Text = string.Format("Streaner - Câu hỏi: số {0}", int.Parse(numberQuestion));
+
+                        this.Invoke(new Action(() =>
+                        {
+                            groupBox_webcam.Text = string.Format("Streaner - Câu hỏi: số {0}", int.Parse(numberQuestion));
+                        }));
 
                         received = reader.ReadLine();
                         parseQuestion(received);
                         
-                        // markup UI
-                        answer_A.Enabled = true;
-                        answer_B.Enabled = true;
-                        answer_C.Enabled = true;
 
-                        answer_A.BackColor = Color.Honeydew;
-                        answer_B.BackColor = Color.Honeydew;
-                        answer_C.BackColor = Color.Honeydew;
+                        this.Invoke(new Action(() =>
+                        {
+                            // markup UI
+                            answer_A.Enabled = true;
+                            answer_B.Enabled = true;
+                            answer_C.Enabled = true;
 
-                        txt_question.Location = new Point(31, 334);
-                        answer_A.Location = new Point(165, 384);
-                        answer_B.Location = new Point(165, 420);
-                        answer_C.Location = new Point(165, 456);
+                            answer_A.BackColor = Color.Honeydew;
+                            answer_B.BackColor = Color.Honeydew;
+                            answer_C.BackColor = Color.Honeydew;
+
+                            txt_question.Location = new Point(31, 334);
+                            answer_A.Location = new Point(165, 384);
+                            answer_B.Location = new Point(165, 420);
+                            answer_C.Location = new Point(165, 456);
+                        }));
                     }
 
                    while (true)
@@ -334,28 +349,36 @@ namespace Client
                                
                                 // id
                                 string numberQuestion = reader.ReadLine();
-                                groupBox_webcam.Text = string.Format("Streamer - Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
+
+                                this.Invoke(new Action(() =>
+                                {
+                                    groupBox_webcam.Text = string.Format("Streamer - Câu hỏi: số {0}", Convert.ToInt32(numberQuestion) + 1);
+                                }));
 
                                 //question 
                                 received = reader.ReadLine();
                                 parseQuestion(received);
 
-                                
-                                // Markup UI
-                                answer_A.Enabled = true;
-                                answer_B.Enabled = true;
-                                answer_C.Enabled = true;
+                                this.Invoke(new Action(() =>
+                                {
+                                    // Markup UI
+                                    answer_A.Enabled = true;
+                                    answer_B.Enabled = true;
+                                    answer_C.Enabled = true;
 
-                                answer_A.BackColor = Color.Honeydew;
-                                answer_B.BackColor = Color.Honeydew;
-                                answer_C.BackColor = Color.Honeydew;
+                                    answer_A.BackColor = Color.Honeydew;
+                                    answer_B.BackColor = Color.Honeydew;
+                                    answer_C.BackColor = Color.Honeydew;
 
-                                txt_question.Location = new Point(31, 334);
-                                answer_A.Location = new Point(165, 384);
-                                answer_B.Location = new Point(165, 420);
-                                answer_C.Location = new Point(165, 456);
+                                    txt_question.Location = new Point(31, 334);
+                                    answer_A.Location = new Point(165, 384);
+                                    answer_B.Location = new Point(165, 420);
+                                    answer_C.Location = new Point(165, 456);
+
+
+                                }));
                                 break;
-                            
+
                             case "correct":
                                 received = reader.ReadLine();
                                 Console.WriteLine(received);
@@ -375,7 +398,10 @@ namespace Client
                                     answer_A.BackColor = Color.Green;
                                     if (answer == "A")
                                     {
-                                        txt_score.Text = score.ToString();
+                                        this.Invoke(new Action(() =>
+                                        {
+                                            txt_score.Text = score.ToString();
+                                        }));
                                     }
                                     
                                 }
@@ -384,8 +410,10 @@ namespace Client
                                     answer_B.BackColor = Color.Green;
                                     if (answer == "B")
                                     {
-                                        txt_score.Text = score.ToString();
-                                       
+                                        this.Invoke(new Action(() =>
+                                        {
+                                            txt_score.Text = score.ToString();
+                                        }));
                                     }
                                   
                                 }
@@ -394,10 +422,11 @@ namespace Client
                                     answer_C.BackColor = Color.Green;
                                     if (answer == "C")
                                     {
-                                        txt_score.Text = score.ToString();
-                                       
+                                        this.Invoke(new Action(() =>
+                                        {
+                                            txt_score.Text = score.ToString();
+                                        }));
                                     }
-                                  
                                 }
                                 else
                                 {
@@ -446,11 +475,14 @@ namespace Client
 
                 Console.WriteLine(jsonQuestion);
                 dynamic data = JObject.Parse(jsonQuestion);
-                // update to GUI
-                txt_question.Text = data.Question;
-                answer_A.Text = data.A;
-                answer_B.Text = data.B;
-                answer_C.Text = data.C;
+
+                this.Invoke(new Action(() => {
+                    // update to GUI
+                    txt_question.Text = data.Question;
+                    answer_A.Text = data.A;
+                    answer_B.Text = data.B;
+                    answer_C.Text = data.C;
+                }));
             }
             catch (Exception ex)
             {
