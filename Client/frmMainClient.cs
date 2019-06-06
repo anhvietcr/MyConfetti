@@ -1,20 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Collections;
 using Newtonsoft.Json.Linq;
 using NAudio.Wave;
-using NAudio.Wave.Compression;
 using Codecs.Codecs;
 using Codecs;
 
@@ -115,6 +107,7 @@ namespace Client
             btn_close.Enabled = false;
 
             isDisconnect = true;
+            connected = false;
 
             client.Close();
             TcpWebcamClient.Close();
@@ -143,14 +136,13 @@ namespace Client
                     buffer = udpAudioListener.Receive(ref endPoint);
                     decoded = listenerThreadState.Codec.Decode(buffer, 0, buffer.Length);
                     waveProvider.AddSamples(decoded, 0, decoded.Length);
-                    Console.WriteLine("audio receive size {0}", decoded.Length);
+                    //Console.WriteLine("audio receive size {0}", decoded.Length);
                 }
             }
             catch (SocketException ex)
             {
                 Console.WriteLine("Disconnect audio from server");
                 udpAudioListener.Close();
-                //throw;
             }
         }
         #endregion
@@ -161,27 +153,61 @@ namespace Client
             while (TcpWebcamClient.Connected)
             {
                 NetworkStream ns = TcpWebcamClient.GetStream();
+                byte[] data = ReceiveChunkData(ns);
 
-                byte[] data = Receive(ns);
+                //byte[] data = Receive(ns);
 
                 if (data == null || data.Length <= 0)
                 {
                     break;
                 }
-                Console.WriteLine("webcam receive size {0}", data.Length);
 
                 // add to picture streamer
                 pictureBoxStreamer.Image = ByteToImage(data);
+            }
+
+            Console.WriteLine("Webcam disconnected");
+        }
+        private byte[] ReceiveChunkData(NetworkStream s)
+        {
+            try
+            {
+                int total = 0;
+                int recv;
+                byte[] datasize = new byte[4];
+
+                recv = s.Read(datasize, 0, 4);
+                int size = BitConverter.ToInt32(datasize, 0);
+                int dataleft = size;
+                byte[] data = new byte[size];
+
+                while (total < size)
+                {
+                    recv = s.Read(data, total, dataleft);
+                    if (recv == 0)
+                    {
+                        break;
+                    }
+                    total += recv;
+                    dataleft -= recv;
+                }
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Cannot receive webcam from server");
+                TcpWebcamClient.Close();
+                return null;
             }
         }
         private byte[] Receive(NetworkStream netstr)
         {
             try
             {
-                // Buffer to store the response bytes.
+                //Buffer to store the response bytes.
                 byte[] recv = new Byte[256 * 1000];
 
-                // Read the first batch of the TcpServer response bytes.
+                //Read the first batch of the TcpServer response bytes.
                 int bytes = netstr.Read(recv, 0, recv.Length);
                 byte[] a = new byte[bytes];
 
@@ -190,6 +216,7 @@ namespace Client
                     a[i] = recv[i];
                 }
                 return a;
+
             }
             catch (Exception ex)
             {
@@ -197,19 +224,19 @@ namespace Client
                 TcpWebcamClient.Close();
                 return null;
             }
-
         }
         public Image ByteToImage(byte[] byteArrayIn)
         {
             try
             {
-                ImageConverter converter = new ImageConverter();
-                Image img = (Image)converter.ConvertFrom(byteArrayIn);
-
+                MemoryStream ms = new MemoryStream(byteArrayIn);
+                Image img = Image.FromStream(ms);
                 return img;
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
+
                 Image notfound = Image.FromFile("404.jpg");
                 return notfound;
             }
@@ -272,11 +299,10 @@ namespace Client
             Thread mainThread = new Thread(() =>
             {
                
-                 string state = string.Empty;
-                 string msg = string.Empty;//Biến lưu chủ đề trả từ server về
-                 string received = string.Empty;//Biến lưu kết quả đúng sai
-                 //StreamWriter writer = null;
-                 //StreamReader reader = null;
+                string state = string.Empty;
+                string msg = string.Empty;//Biến lưu chủ đề trả từ server về
+                string received = string.Empty;//Biến lưu kết quả đúng sai
+
                 try
                 {
                     // connect
@@ -286,7 +312,9 @@ namespace Client
                     {
                         txt_status.Text = string.Format("Connected to {0}:{1}", ip, port);
                     }));
+
                     isDisconnect = false;
+
                     // read, write to server using stream, over use bytes[]
                     Stream streamer = client.GetStream();
                     reader = new StreamReader(streamer);
@@ -389,7 +417,6 @@ namespace Client
                                     answer_A.Location = new Point(165, 384);
                                     answer_B.Location = new Point(165, 420);
                                     answer_C.Location = new Point(165, 456);
-
 
                                 }));
                                 break;

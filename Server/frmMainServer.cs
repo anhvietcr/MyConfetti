@@ -74,7 +74,6 @@ namespace Server
         private VideoCaptureDevice cam;
         private TcpListener tcpWebcamServer;
         private volatile bool webcamConnected;
-        private Socket webcamSocket;
         private volatile List<Socket> _listSocketWebcam = new List<Socket>();
         #endregion
 
@@ -171,7 +170,7 @@ namespace Server
                 }
 
                 // webcam
-                tcpWebcamServer.Server.Close();
+                //tcpWebcamServer.Server.Close();
                 foreach (Socket client in _listSocketWebcam)
                 {
                     client.Close();
@@ -395,6 +394,7 @@ namespace Server
             catch (Exception ex)
             {
                 Console.WriteLine("Webcam was close !!!");
+                return;
             }
         }
 
@@ -403,7 +403,7 @@ namespace Server
             Bitmap bImage = new Bitmap(img);
             byte[] bStream = ImageToByte(bImage);
 
-            if (webcamConnected)
+            if (webcamConnected && bStream.Length > 0)
             {
                 try
                 {
@@ -412,10 +412,14 @@ namespace Server
                     {
                         if (client.Connected)
                         {
-                            client.Send(bStream, bStream.Length, SocketFlags.None);
+                            int sizeSent = SendChunkData(client, bStream);
+                            
+                            //client.Send(bStream, bStream.Length, SocketFlags.None);
+                            //Console.WriteLine("send webcam size {0}", bStream.Length);
+                            
+                            //Console.WriteLine("send webcam size {0}", sizeSent);
                         }
                     }
-                   // Console.WriteLine("send webcam size {0}", bStream.Length);
                 }
                 catch (SocketException ex)
                 {
@@ -427,7 +431,25 @@ namespace Server
                 }
             }
         }
+        private static int SendChunkData(Socket s, byte[] data)
+        {
+            int total = 0;
+            int size = data.Length;
+            int dataleft = size;
+            int sent;
 
+            byte[] datasize = new byte[4];
+            datasize = BitConverter.GetBytes(size);
+            sent = s.Send(datasize);
+
+            while (total < size)
+            {
+                sent = s.Send(data, total, dataleft, SocketFlags.None);
+                total += sent;
+                dataleft -= sent;
+            }
+            return total;
+        }
         private byte[] ImageToByte(Image img)
         {
             MemoryStream mMemoryStream = new MemoryStream();
@@ -483,7 +505,7 @@ namespace Server
                         tcpWebcamServer = new TcpListener(IPAddress.Parse(ip), port + 1);
                         tcpWebcamServer.Start();
                         webcamConnected = true;
-                        Console.WriteLine("Opened TCP for Webcam at broadcast {0}:{1}", ip, port + 1);
+                        Console.WriteLine("Opened TCP for Webcam at {0}:{1}", ip, port + 1);
                     }
 
                     // Listen from client
@@ -491,7 +513,7 @@ namespace Server
                     while (_numberConnecting < MAX_CONNECT)//Số connecting hiện tại <100
                     {
                         Socket acceptSocket = server.AcceptSocket();//Tạo ra 1 socket để làm việc với client
-                        webcamSocket = tcpWebcamServer.AcceptSocket();
+                        Socket webcamSocket = tcpWebcamServer.AcceptSocket();
 
                         // Add all socket connected to control
                         _listSocketWebcam.Add(webcamSocket);
@@ -508,6 +530,7 @@ namespace Server
                         {
                             break;
                         }
+
                         // ready for communications
                         //Khi 1 client xác nhận connected thì tạo ra 1 luồng cho nó
                         if (acceptSocket.Connected)
@@ -525,7 +548,7 @@ namespace Server
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Server was close");
+                    Console.WriteLine("Server was close !!");
                     return;
                 }
 
@@ -639,11 +662,13 @@ namespace Server
             //Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
             if (client.Connected)
             {
-                foreach (Socket socketWebcam in _listSocketWebcam)
+                Console.WriteLine("Disconnected from {0}", client.RemoteEndPoint);
+
+                foreach (Socket webcamSocket in _listSocketWebcam)
                 {
-                    if (socketWebcam.RemoteEndPoint == client.RemoteEndPoint)
+                    if (webcamSocket.RemoteEndPoint == client.RemoteEndPoint)
                     {
-                        socketWebcam.Close();
+                        webcamSocket.Close();
                     }
                 }
                 client.Close();
