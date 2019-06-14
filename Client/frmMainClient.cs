@@ -483,6 +483,7 @@ namespace Client
                                 Console.WriteLine(received);
                                 string s = received + "\n" + cost;
                                 MessageBox.Show(s);
+                                score = 0;
                                 break;
                             default: break;
                         }

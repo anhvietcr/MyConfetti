@@ -57,8 +57,8 @@ namespace Server
         private string _correctAnswer { get; set; }         = string.Empty;
         private static bool _isNewQuestion { get; set; }    = false;
 
-        private static List<int> list_id = new List<int>();
-
+        private static List<int> _list_id = new List<int>();//Lưu số câu trả lời đúng cho mỗi client
+        private static int _numberCorrectAnswer = 0;
         private static int cost;
         //volatile : Biến volatile thì thread nào cũng xử dụng dc
        
@@ -227,26 +227,41 @@ namespace Server
 
             if (_numberQuestion >= _questions.Length)
             {
+                MessageBox.Show("Hết câu hỏi !");
+
                 float totalCost;
                 int dem = 0;
-                if (!float.TryParse(txt_cost.Text, out totalCost)){
+                if (!float.TryParse(txt_cost.Text, out totalCost)) {
                     totalCost = 3000;
                 }
-                string winner = "Người chiến thắng có id là :";
-                for (int i = 0; i < list_id.Count; i++)
+                string winner = "";
+                string winner_Cost = "";
+                
+
+
+                     
+                for (int i = 0; i < _list_id.Count; i++)
                 {
-                    if (list_id[i] == 10)
+                    if (_list_id[i] == 10)
                     {
                         dem++;
                         winner += "  " + (i + 1).ToString();
                     }
                 }
-                float cost = totalCost / dem;
-                string winner_Cost = String.Format("$ ({0})", cost);
-                MessageBox.Show(winner, "Thông báo!");
-                Console.WriteLine(winner);
-                // message to all client for start game
-
+                if (dem > 0)
+                {
+                    string s  = "Người chiến thắng có id là :";
+                    winner = s + winner;
+                    float cost = totalCost / dem;
+                   winner_Cost  = String.Format("$ ({0})", cost);
+                    MessageBox.Show(winner+"\nsố tiền thưởng là : "+ winner_Cost, "Thông báo!");
+                    Console.WriteLine(winner);
+                    // message to all client for start game
+                }
+                else
+                {
+                    winner = "Rất tiếc chưa có ai chiến thắng!";
+                }
                 foreach (Socket client in _listSocket)
                 {
                     if (client.Connected)
@@ -260,7 +275,7 @@ namespace Server
                     }
                 }
                
-                MessageBox.Show("Hết câu hỏi !");
+               
                 _numberQuestion = 0;
                 btn_play.Enabled = true;
                 btnNext.Enabled = false;
@@ -590,7 +605,7 @@ namespace Server
                             // send to client's ID, state game
                             writer.WriteLine(_numberConnecting);
                             writer.WriteLine(_isPlay);
-                            list_id.Add(0);
+                            _list_id.Add(0);
                             break;
 
                         case "question":
@@ -612,7 +627,8 @@ namespace Server
                                 writer.WriteLine(this._correctAnswer);
                                 Console.WriteLine("Correct answer {0}: ", this._correctAnswer);
                                 int i = int.Parse(idUser);
-                                list_id[i - 1]++;
+                                _list_id[i - 1]++;
+                                _numberCorrectAnswer += 1;
                             }
                             else
                             {
@@ -722,6 +738,8 @@ namespace Server
                     }
                 }
             }
+            lbCorrectAnswer.Text = _numberCorrectAnswer.ToString();
+            _numberCorrectAnswer = 0;
         }
     }
 }

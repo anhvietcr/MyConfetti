@@ -32,6 +32,7 @@
             this.btn_open = new System.Windows.Forms.Button();
             this.txt_port = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label6 = new System.Windows.Forms.Label();
             this.pictureBoxStreamer = new System.Windows.Forms.PictureBox();
             this.btn_play = new System.Windows.Forms.Button();
             this.txt_numberConnect = new System.Windows.Forms.Label();
@@ -49,10 +50,11 @@
             this.comboBoxWebcams = new System.Windows.Forms.ComboBox();
             this.btnShowAnswer = new System.Windows.Forms.Button();
             this.txt_cost = new System.Windows.Forms.TextBox();
-            this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
+            this.lb = new System.Windows.Forms.Label();
+            this.lbCorrectAnswer = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxStreamer)).BeginInit();
             this.SuspendLayout();
@@ -99,6 +101,15 @@
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Streamer";
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(7, 510);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(46, 18);
+            this.label6.TabIndex = 1;
+            this.label6.Text = "label6";
             // 
             // pictureBoxStreamer
             // 
@@ -259,17 +270,8 @@
             this.txt_cost.Name = "txt_cost";
             this.txt_cost.Size = new System.Drawing.Size(49, 24);
             this.txt_cost.TabIndex = 13;
-            this.txt_cost.Text = "4000";
+            this.txt_cost.Text = "3000";
             this.txt_cost.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(7, 510);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(46, 18);
-            this.label6.TabIndex = 1;
-            this.label6.Text = "label6";
             // 
             // label7
             // 
@@ -301,11 +303,33 @@
             this.label9.TabIndex = 16;
             this.label9.Text = "Đ/c IP ";
             // 
+            // lb
+            // 
+            this.lb.AutoSize = true;
+            this.lb.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lb.Location = new System.Drawing.Point(562, 37);
+            this.lb.Name = "lb";
+            this.lb.Size = new System.Drawing.Size(93, 18);
+            this.lb.TabIndex = 18;
+            this.lb.Text = "Trả lời đúng :";
+            // 
+            // lbCorrectAnswer
+            // 
+            this.lbCorrectAnswer.AutoSize = true;
+            this.lbCorrectAnswer.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbCorrectAnswer.Location = new System.Drawing.Point(652, 37);
+            this.lbCorrectAnswer.Name = "lbCorrectAnswer";
+            this.lbCorrectAnswer.Size = new System.Drawing.Size(16, 18);
+            this.lbCorrectAnswer.TabIndex = 17;
+            this.lbCorrectAnswer.Text = "0";
+            // 
             // frm_server
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(677, 664);
+            this.Controls.Add(this.lb);
+            this.Controls.Add(this.lbCorrectAnswer);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.label7);
@@ -368,6 +392,8 @@
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Label lb;
+        private System.Windows.Forms.Label lbCorrectAnswer;
     }
 }
 
